@@ -6,9 +6,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>自覺程度測驗</title>
   <script src="questions_36_full.js"></script>
-<script>
-if(typeof questions === "undefined") alert("⚠️ 題庫未正確載入，請確認 questions_36_full.js 是否與 HTML 檔案在同一資料夾內！");
-</script>
   <style>
     html { scroll-behavior: smooth; }
     body {
@@ -88,17 +85,27 @@ if(typeof questions === "undefined") alert("⚠️ 題庫未正確載入，請�
   <button onclick="submitTest()">送出測驗</button>
 
   <script>
-    const form = document.getElementById("testForm");
+    window.addEventListener("DOMContentLoaded", () => {
+      try {
+        if (!Array.isArray(questions)) {
+          throw new Error("questions 題庫未載入");
+        }
 
-    questions.forEach((q, i) => {
-      const div = document.createElement("div");
-      div.className = "question";
-      div.id = "q" + i;
-      div.innerHTML = \`<strong>${q.title}</strong><br>\` +
-        q.options.map((opt, j) => \`
-          <label><input type="radio" name="q\${i}" value="\${j+1}" onchange="scrollToNext(\${i})" /> \${opt}</label>
-        \`).join('');
-      form.appendChild(div);
+        const form = document.getElementById("testForm");
+
+        questions.forEach((q, i) => {
+          const div = document.createElement("div");
+          div.className = "question";
+          div.id = "q" + i;
+          div.innerHTML = `<strong>${q.title}</strong><br>` +
+            q.options.map((opt, j) => `
+              <label><input type="radio" name="q${i}" value="${j+1}" onchange="scrollToNext(${i})" /> ${opt}</label>
+            `).join('');
+          form.appendChild(div);
+        });
+      } catch (e) {
+        document.body.innerHTML = "<h3 style='color:red'>⚠️ 題庫載入失敗，請確認 questions_36_full.js 是否與 test.html 同在一個資料夾中，且語法無誤。</h3>";
+      }
     });
 
     function scrollToNext(i) {
