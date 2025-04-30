@@ -2,84 +2,89 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>自覺程度模組｜企業後台分析</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard｜測驗分析後台</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 2rem; max-width: 960px; margin: auto; color: #333; }
-    h1, h2 { color: #1d3557; }
-    section { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 2rem; }
-    .select { padding: 0.8rem; font-size: 1rem; width: 100%; margin-bottom: 1rem; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      margin: auto;
+      background: #f1f3f5;
+      padding: 1.5rem;
+      max-width: 1024px;
+      color: #333;
+    }
+    h2, h3 { color: #1d3557; }
+    section {
+      background: #fff;
+      border-radius: 8px;
+      padding: 1rem 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    select {
+      width: 100%;
+      padding: 0.6rem;
+      margin-bottom: 1rem;
+      font-size: 1rem;
+      border-radius: 6px;
+    }
+    canvas { max-width: 100%; }
+    @media (max-width: 600px) {
+      h2 { font-size: 1.25rem; }
+      section { padding: 1rem; }
+    }
   </style>
 </head>
 <body>
-  <h1>企業後台｜雙層篩選分析</h1>
+  <h2>受測者分析後台｜Dashboard</h2>
 
   <section>
-    <h2>📋 選擇受測日期與姓名</h2>
-    <label>選擇日期：</label>
-    <select id="dateSelector" class="select"><option value="">請選擇日期</option></select>
-    <label>選擇受測者：</label>
-    <select id="userSelector" class="select" disabled><option value="">請先選擇日期</option></select>
+    <label for="dateSelector">選擇測驗日期：</label>
+    <select id="dateSelector"></select>
+    <label for="userSelector">選擇受測者姓名：</label>
+    <select id="userSelector" disabled></select>
   </section>
 
   <div id="analysisArea" style="display:none">
-    <section><h2>📊 雷達圖</h2><canvas id="radarChart" height="300"></canvas></section>
-    <section><h2>🔍 雷達總結語</h2><p id="radarSummary">-</p></section>
-    <section><h2>🧠 模擬樣貌</h2><div id="personaBlock">-</div></section>
-    <section><h2>🌟 優勢敘述</h2><div id="advBlock">-</div></section>
-    <section><h2>⚠️ 風險敘述</h2><div id="riskBlock">-</div></section>
+    <section><h3>📊 五構面雷達圖</h3><canvas id="radarChart" height="300"></canvas></section>
+    <section><h3>📘 雷達圖整體解說</h3><div id="radarBlock">-</div></section>
+    <section><h3>🔍 主導構面模擬敘述</h3><div id="personaBlock">-</div></section>
+    <section><h3>🌟 高分組合優勢說明</h3><div id="advBlock">-</div></section>
+    <section><h3>⚠️ 低分構面風險建議</h3><div id="riskBlock">-</div></section>
+    <section><h3>🧠 自覺程度分析</h3><div id="awarenessBlock">-</div></section>
   </div>
 
   <script>
     const dimensionMap = {
-      "團隊展現": [0, 1, 32], "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
-      "執行能力": [4, 5, 19, 20, 21], "創意展現": [12, 13, 14, 17, 18], "工作風格": [3, 7, 15, 16, 31, 33]
+      "團隊展現": [0, 1, 32],
+      "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
+      "執行能力": [4, 5, 19, 20, 21],
+      "創意展現": [12, 13, 14, 17, 18],
+      "工作風格": [3, 7, 15, 16, 31, 33]
     };
 
-    const summaries = {
-      "工作風格": "你擁有明確的行動邏輯與堅持，擅長在不確定中保持節奏與效率。",
-      "團隊展現": "你習慣觀察群體動態並主動調和團隊步調，是穩定互動與共識產出的催化劑。",
-      "自我認知": "你對自己的感受與言行具備高度自省能力，善於修正並調整對應他人方式。",
-      "執行能力": "你擅長把想法付諸行動，能針對目標制定步驟，並持續跟進成果。",
-      "創意展現": "你能從多角度思考與組合資訊，適合在變動中提出具突破性與創新性方案。"
-    };
-
-    const strengths = {
-      "工作風格+執行能力": "具備節奏感與責任意識，適合推動穩定任務或長期計畫。",
-      "團隊展現+自我認知": "具備人際感知與自我修正力，適合文化導入、教練培育角色。",
-      "創意展現+自我認知": "能創造概念並快速修正，適合變動環境或策略設計場域。",
-      "工作風格+創意展現": "能具體化創意並推動執行，是組織內的創新整合者。",
-      "執行能力+創意展現": "具備創意想法與實踐能力，適合研發、產品原型、測試類任務。",
-      "工作+執行+團隊": "三強構面者為任務與人際推進兼具，是可被培養的領導潛能人才。"
-    };
-
-    const risks = {
-      "工作風格": "節奏與任務掌握較弱，建議搭配有結構主管與週期提醒機制。",
-      "團隊展現": "互動參與度低，可能在團體中邊緣化，建議提供角色設定與引導。",
-      "自我認知": "較少自我反思，可能難以接受回饋，建議有歷程回顧與同儕觀察支持。",
-      "執行能力": "執行起伏大，適合短期任務拆解與階段回報設計。",
-      "創意展現": "創新彈性低，建議參考案例式發想或模板輔助思維拓展。"
-    };
-
-    function calculateAvg(scores) {
+    function calcAvg(scores) {
       const result = {};
-      for (const [k, v] of Object.entries(dimensionMap)) {
-        result[k] = parseFloat((v.reduce((sum, i) => sum + (scores[i] || 0), 0) / v.length).toFixed(2));
+      for (const [key, idxs] of Object.entries(dimensionMap)) {
+        result[key] = parseFloat((idxs.reduce((sum, i) => sum + scores[i], 0) / idxs.length).toFixed(2));
       }
       return result;
     }
 
-    function renderRadar(data) {
+    function drawRadar(avg) {
       new Chart(document.getElementById("radarChart"), {
-        type: 'radar',
+        type: "radar",
         data: {
-          labels: Object.keys(data),
+          labels: Object.keys(avg),
           datasets: [{
-            label: '五構面分數',
-            data: Object.values(data),
-            backgroundColor: 'rgba(33, 111, 163, 0.2)',
-            borderColor: '#2170a3', pointBackgroundColor: '#2170a3'
+            label: "五構面分數",
+            data: Object.values(avg),
+            backgroundColor: "rgba(33,111,163,0.2)",
+            borderColor: "#2170a3",
+            pointBackgroundColor: "#2170a3"
           }]
         },
         options: {
@@ -89,51 +94,80 @@
       });
     }
 
-    window.onload = () => {
-      const dataset = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
-      const dateSelector = document.getElementById("dateSelector");
-      const nameSelector = document.getElementById("userSelector");
-      const dates = [...new Set(dataset.map(d => d.date))];
-      dates.forEach(date => {
+    async function loadText(id, path) {
+      try {
+        const html = await fetch(path).then(res => res.text());
+        document.getElementById(id).innerHTML = html;
+      } catch {
+        document.getElementById(id).innerText = `找不到 ${path}`;
+      }
+    }
+
+    const dataset = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
+    const dateSel = document.getElementById("dateSelector");
+    const nameSel = document.getElementById("userSelector");
+
+    const dates = [...new Set(dataset.map(d => d.date))];
+    dates.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d; opt.text = d;
+      dateSel.appendChild(opt);
+    });
+
+    dateSel.onchange = () => {
+      nameSel.innerHTML = "<option value=''>請選擇</option>";
+      nameSel.disabled = false;
+      const filtered = dataset.filter(d => d.date === dateSel.value);
+      filtered.forEach((d, i) => {
         const opt = document.createElement("option");
-        opt.value = date; opt.text = date;
-        dateSelector.appendChild(opt);
+        opt.value = i;
+        opt.text = d.name;
+        nameSel.appendChild(opt);
       });
 
-      dateSelector.onchange = () => {
-        nameSelector.innerHTML = "<option value=''>請選擇姓名</option>";
-        nameSelector.disabled = false;
-        const date = dateSelector.value;
-        const filtered = dataset.filter(d => d.date === date);
-        filtered.forEach((d, i) => {
-          const opt = document.createElement("option");
-          opt.value = i;
-          opt.text = d.name;
-          nameSelector.appendChild(opt);
+      nameSel.onchange = () => {
+        const entry = filtered[nameSel.value];
+        if (!entry) return;
+        const avg = calcAvg(entry.scores);
+        const sorted = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+        const top = sorted[0][0];
+        const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+        const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
+
+        document.getElementById("analysisArea").style.display = "block";
+        drawRadar(avg);
+        loadText("radarBlock", `radar_${top}.html`);
+        loadText("personaBlock", `persona_${top}.html`);
+
+        const advKey = high.slice(0, 3).join("_") || high.slice(0, 2).join("_");
+        loadText("advBlock", `strength_${advKey}_high.html`);
+
+        const riskDiv = document.getElementById("riskBlock");
+        riskDiv.innerHTML = "";
+        low.forEach(k => {
+          const div = document.createElement("div");
+          riskDiv.appendChild(div);
+          fetch(`risk_${k}_low.html`)
+            .then(res => res.text())
+            .then(html => div.innerHTML = html)
+            .catch(() => div.innerText = `找不到風險 risk_${k}_low.html`);
         });
 
-        nameSelector.onchange = () => {
-          const name = nameSelector.options[nameSelector.selectedIndex].text;
-          const entry = filtered.find(d => d.name === name);
-          if (!entry) return;
+        const selfQ = [2, 6, 27, 30, 32, 33, 34];
+        const rev = [0, 1]; // 模擬反喆題位置
+        const likert = selfQ.map(i => entry.scores[i]);
+        const revSum = rev.map(i => entry.scores[i]).reduce((a, b) => a + b, 0);
+        const avgLikert = likert.reduce((a, b) => a + b, 0) / likert.length;
 
-          const avg = calculateAvg(entry.scores);
-          const sorted = Object.entries(avg).sort((a, b) => b[1] - a[1]);
-          const top = sorted[0][0];
-          const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
-          const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
-
-          document.getElementById("analysisArea").style.display = "block";
-          document.getElementById("radarSummary").innerText = summaries[top];
-          document.getElementById("personaBlock").innerText = "主導構面模擬樣貌：" + summaries[top];
-
-          let key = high.slice(0, 3).join("+");
-          if (!strengths[key]) key = high.slice(0, 2).join("+");
-          document.getElementById("advBlock").innerText = strengths[key] || "未定義高分組合";
-
-          document.getElementById("riskBlock").innerHTML = "<ul>" + low.map(k => "<li>" + risks[k] + "</li>").join("") + "</ul>";
-          renderRadar(avg);
-        };
+        let bias = "";
+        if (avgLikert >= 2.6 && revSum <= 3) {
+          bias = "⚠️ 高自評但反喆矛盾，可能出現高估傾向";
+        } else if (avgLikert <= 1.5 && revSum >= 5) {
+          bias = "⚠️ 低自評但反喆合理，可能過度壓抑";
+        } else {
+          bias = "✅ 自評與內在一致性良好";
+        }
+        document.getElementById("awarenessBlock").innerText = bias;
       };
     };
   </script>
