@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -17,9 +16,6 @@
     h1 {
       text-align: center;
       color: #2a4c66;
-    }
-    .info {
-      margin-bottom: 2rem;
     }
     .question {
       background: #fff;
@@ -40,12 +36,6 @@
       border-radius: 4px;
       cursor: pointer;
     }
-    input[type="text"], input[type="date"] {
-      padding: 0.5rem;
-      font-size: 1rem;
-      width: 100%;
-      margin-bottom: 1rem;
-    }
     button {
       display: block;
       margin: 2rem auto;
@@ -61,26 +51,56 @@
 </head>
 <body>
   <h1>自覺程度測驗</h1>
-  <div class="info">
-    <input type="text" id="userName" placeholder="請輸入您的姓名" required>
-    <input type="date" id="testDate" required>
-  </div>
   <form id="testForm"></form>
   <button onclick="submitTest()">送出測驗</button>
 
   <script>
-    const questions = Array.from({ length: 36 }, (_, i) => ({
-      title: `第 ${i + 1} 題：請填入實際題目內容`,
-      options: ["A. 第一個選項", "B. 第二個選項", "C. 第三個選項"]
-    }));
-
+const questions = [
+  { title: "當你在會議上表達意見時，有人當場糾正你說錯內容，你會？", options: ["表達自己不是有意的，或當下先沉默略過。", "承認內容可能有誤，會再查資料補充。", "先說「謝謝提醒」，然後補充正確內容與來源。"] },
+  { title: "當你提出的流程被他人微調並實施後成果更好，你會怎麼看待？", options: ["覺得有點被否定，但不會特別說什麼。", "會對成果好感到欣慰，也重新思考原提案。", "主動表示他人提案很不錯，下次也會想這樣試試。"] },
+  { title: "你注意到同事的報告有部分資料出錯，你會？", options: ["私下查證，等確認後再看要不要處理。", "紀錄下來，視情況在會後提醒對方。", "立即告知對方提醒錯誤並提供支援修正。"] },
+  { title: "當主管指派任務時語氣嚴肅，你會怎麼理解對方的態度？", options: ["感到緊張或防備，先專注把任務做完再說。", "可能是主管習慣的語氣，不會多想太多。", "主動回應語氣並釐清需求，希望協助更明確。"] },
+  { title: "你發現自己誤發錯誤訊息導致團隊困擾時，你會？", options: ["先處理狀況，但避免說太多以免責任加重。", "主動告知有誤並表示會立即更正。", "說明錯誤影響，並請團隊調整後續作業。"] },
+  { title: "第一次進入新團隊，前幾次會議你通常會？", options: ["盡量不說太多，先觀察組內互動模式。", "回應關鍵問題，適度發言但不主導。", "適時提問、觀察後嘗試統整方向或建議。"] },
+  { title: "當你被分配一項新任務，你的第一反應是？", options: ["擔心是否能勝任，先請教他人或思考要不要調整。", "先評估內容是否困難，再看怎麼分配時間。", "主動說明自己的理解與策略，看團隊是否接受。"] },
+  { title: "團隊中有人發表與你不同看法時，你會？", options: ["覺得對方質疑你，可能會說明立場或反駁。", "表示理解但保留意見，等發言時再補充。", "先詢問對方為什麼這麼看，進一步釐清差異。"] },
+  { title: "當他人向你指出你說錯資訊時，你會？", options: ["當場略過或笑笑帶過。", "回答「我再確認一下」爭取時間補強內容。", "回應「了解，謝謝補充」並即時修正。"] },
+  { title: "你明知道有任務會讓你暴露缺點時，會怎麼反應？", options: ["避免選擇，等待是否有其他人處理。", "評估是否還有備案，再考慮是否接下挑戰。", "表達理解挑戰的同時，說明你願意練習與修正。"] },
+  { title: "當你看到同事處理方式和你想像不同時，你會？", options: ["覺得麻煩或不想管，只要不是錯就讓他做。", "觀察是否有更好方式，再私下討論。", "主動問對方做法依據，提出討論建議。"] },
+  { title: "有個任務你不太確定如何進行，但主管沒時間多說，你會？", options: ["決定先自己試試，邊做邊看。", "簡單完成初步工作，等主管有空再確認。", "明確整理關鍵點，再寄信給主管請示。"] },
+  { title: "同事在會議上沒說清楚的地方，導致客戶誤會，你會？", options: ["看當事人怎麼處理，不特別干涉。", "視場合是否方便幫忙澄清。", "主動補充清楚並幫對方說明誤會來源。"] },
+  { title: "當主管讚美你時提到你其實運氣不錯，你會怎麼回應？", options: ["笑笑接受，但心裡不太舒服。", "笑著說也許是剛好有經驗幫得上忙。", "回應「謝謝，但我也努力做足準備」"] },
+  { title: "當你正在進行的專案被突然更改方向，你會怎麼處理？", options: ["先做該做的，再觀察後續再決定投入程度。", "照新的方式處理，同時記錄自己版本。", "主動重新開啟規劃與溝通流程。"] },
+  { title: "你在一個提案會中臨時被點名發表看法時，你會？", options: ["先說「沒太多想法」避開發言。", "簡單講一兩點，但保留明確立場。", "直接分享自己立場並提出具體觀點。"] },
+  { title: "同事對某件你熟悉的事做了錯誤判斷，你會？", options: ["先等等，看看會不會有人發現後自己改正。", "私下請對方再確認一次資料。", "當場說明差異處並補上正確說法。"] },
+  { title: "你在團隊中常被分配同一類型任務，你的看法是？", options: ["雖然有些無聊但覺得固定比較省麻煩。", "希望可以換任務，但不主動表達。", "主動提議任務交換或表達學習需求。"] },
+  { title: "某次會議中，有人公開質疑你的邏輯，你會？", options: ["反擊對方的說法，說明你的邏輯在哪裡。", "冷靜回應你不同的理由，但不延伸爭論。", "感謝提醒，並請團隊協助重新釐清。"] },
+  { title: "你遇到團隊中不太願意合作的成員時，你會？", options: ["避開溝通，只做該做的部分。", "盡量合作，必要時透過主管溝通。", "主動約一對一討論，釐清對方顧慮。"] },
+  { title: "你提出的想法被完全忽視後，團隊卻採用了相同點子，未提及你，你會？", options: ["內心覺得不公平，但表面裝作沒事。", "下次會先提想法，避免再發生類似情況。", "私下提出貢獻點，希望下次能註明出處。"] },
+  { title: "你觀察到團隊成員情緒低落，但任務壓力大，你會？", options: ["不理會，先做自己的任務優先。", "傳訊息給對方，鼓勵他還是撐一下。", "主動找機會提出情緒觀察與支持。"] },
+  { title: "你發現主管誤會你的回報內容時，你會怎麼做？", options: ["不澄清，反正總會知道不是你問題。", "用比較溫和語氣請主管再看一次細節。", "說明錯誤點並提供改善方式或選項。"] },
+  { title: "當你必須與一位你不熟、風格不同的人合作時，你會？", options: ["希望只要配合流程完成基本任務即可。", "先了解合作對象做事習慣再安排分工。", "主動找共識點，協調雙方操作方式。"] },
+  { title: "你在專案中明顯沒被納入重要決策，但專案卻影響你成果時，你會？", options: ["覺得自己被排擠，但也無能為力。", "先主動了解決策背景，預做調整。", "提出影響點並請團隊重新評估流程。"] },
+  { title: "當別人將錯怪到你身上，你會怎麼處理？", options: ["先冷處理，不想馬上爭執。", "先說明自己立場，避免誤會延伸。", "釐清責任並要求公平說明。"] },
+  { title: "我通常能客觀看待自己的優點與限制。", options: ["A. 我覺得不太容易做到。", "B. 看情況，有時可以有時不行。", "C. 我蠻能做得到這件事。"] },
+  { title: "我認為在團隊中，我是個願意接受建議的人。", options: ["A. 我有時會排斥建議或不太容易接受。", "B. 依人而異，有時聽得進去，有時不太會。", "C. 我樂於接受建議並嘗試改進。"] },
+  { title: "即使在不熟悉的情境中，我也能快速調整自己。", options: ["A. 面對新情境我常常感到焦慮或混亂。", "B. 視情況調整，有時能適應，有時需要協助。", "C. 我能很快理解情境並投入任務。"] },
+  { title: "我習慣先聽別人想法再提出建議。", options: ["A. 我會習慣先講出我自己的想法。", "B. 我有時會等一下再發表，但不一定。", "C. 我會先觀察他人並思考後再發言。"] },
+  { title: "當我發現錯誤時，我會主動承認並說明。", options: ["A. 我通常不太願意主動承認錯誤。", "B. 有錯誤我會補充說明，但不一定會主動提。", "C. 我會主動承認錯誤並修正。"] },
+  { title: "我覺得自己的貢獻在團隊中通常是被看見的。", options: ["A. 我常常覺得自己的貢獻沒有被看見。", "B. 我知道自己有貢獻，但不太會表達出來。", "C. 我相信自己的貢獻通常被團隊看見。"] },
+  { title: "當你不確定某件事是否有錯，你通常會？", options: ["直接說對方也很激動，彼此互相就好。", "檢查語氣，但不一定會修改說法。", "感謝提醒，並詢問下次有更好的說法方式。"] },
+  { title: "若團隊中有人總是主導意見，你的第一反應是？", options: ["自己不太想表達，避免衝突。", "當下不衝突，但會私下問其他人感覺。", "詢問大家是否也有類似想法，試著平衡發言。"] },
+  { title: "當你被提醒語氣偏激時，你會怎麼看？", options: ["覺得無法判斷，就先保持沉默。", "請同事幫忙確認一下會不會錯。", "主動請同事一起確認並更正可能的錯誤。"] },
+  { title: "在工作中，我幾乎不會犯錯。", options: ["☐ 完全不同意", "☐ 普通", "☐ 完全同意"] },
+  { title: "我的想法通常會被大家第一時間接受。", options: ["☐ 完全不同意", "☐ 普通", "☐ 完全同意"] },
+];
     const form = document.getElementById('testForm');
     questions.forEach((q, idx) => {
       const div = document.createElement('div');
       div.className = 'question';
       div.id = `q${idx}`;
       div.innerHTML = `
-        <h3>${q.title}</h3>
+        <h3>第 ${idx + 1} 題：${q.title}</h3>
         ${q.options.map((opt, i) => `
           <label><input type="radio" name="q${idx}" value="${i+1}" onchange="markAnswered(${idx})"> ${opt}</label>
         `).join('')}
@@ -96,33 +116,17 @@
     }
 
     function submitTest() {
-      const name = document.getElementById('userName').value;
-      const date = document.getElementById('testDate').value;
-      if (!name || !date) {
-        alert("請填寫姓名與日期");
-        return;
-      }
-
-      const scores = [];
-      for (let i = 0; i < 36; i++) {
+      const results = [];
+      for (let i = 0; i < questions.length; i++) {
         const selected = document.querySelector(`input[name='q${i}']:checked`);
         if (!selected) {
           alert(`請完成第 ${i + 1} 題`);
           return;
         }
-        scores.push(parseInt(selected.value));
+        results.push(parseInt(selected.value));
       }
-
-      const result = { name, date, scores };
-
-      // 若已有多筆，則更新；否則建立
-      const existing = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
-      existing.push(result);
-      localStorage.setItem("trust_test_dataset", JSON.stringify(existing));
-      localStorage.setItem("trust_test_result", JSON.stringify(scores)); // 同時支援單人 result.html 顯示
-      alert("測驗完成，請查看結果或通知分析單位。");
-
-      // window.location.href = "result.html";
+      localStorage.setItem("trust_test_result", JSON.stringify(results));
+      window.location.href = "result.html";
     }
   </script>
 </body>
