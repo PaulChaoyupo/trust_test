@@ -10,6 +10,7 @@
     h1, h2 { color: #1d3557; }
     section { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 2rem; }
     .select { padding: 0.8rem; font-size: 1rem; width: 100%; margin-bottom: 1rem; }
+    ul { padding-left: 1.2rem; }
   </style>
 </head>
 <body>
@@ -59,11 +60,37 @@
     };
 
     const radarSummary = {
-      "工作風格": "受測者在任務組織與執行節奏上展現出清晰的個人邏輯與穩定的推進力...",
-      "團隊展現": "受測者整體風格傾向以互動節奏為工作主軸...",
-      "自我認知": "雷達圖反映出受測者具備高度的內在覺察力與反思調節能力...",
-      "執行能力": "此個體在目標落實與任務進程推動上的展現極具穩定性與責任意識...",
-      "創意展現": "雷達圖呈現出開放型探索者的展現模式..."
+      "工作風格": "受測者在任務組織與執行節奏上展現出清晰的個人邏輯與穩定的推進力。",
+      "團隊展現": "受測者整體風格傾向以互動節奏為主，擅於穩定團隊互動並協調進度。",
+      "自我認知": "具備內在覺察與情緒調節的穩定特質，擅長自我修正並理解互動關係。",
+      "執行能力": "展現高效行動力與執行節奏，是專案任務中的穩定落實者。",
+      "創意展現": "具備突破框架與多角度整合的潛能，適合在創新任務中展現價值。"
+    };
+
+    const personaMap = {
+      "工作風格": "他是一位具有高度任務感與節奏意識的成員，習慣以具體行動與時程來組織工作...",
+      "團隊展現": "他在團隊中屬於具有高社會敏感度的協作者，能迅速察覺現場情緒與互動氛圍...",
+      "自我認知": "他是一位高度自省與自我調整意識明確的人，對於語言、情緒與他人影響非常敏感...",
+      "執行能力": "他是一位極具實作導向的人，習慣將任何模糊的概念轉化為可執行的任務...",
+      "創意展現": "他擅長重組觀點與跳脫常規思維，常在問題膠著時提出反向提案或異業解法..."
+    };
+
+    const strengths = {
+      "工作風格+執行能力": "展現出明確的任務節奏與落實力，適合長期任務推動與系統化管理。",
+      "團隊展現+自我認知": "兼具社會敏感度與自我調整能力，擅長協調與同理的角色。",
+      "創意展現+自我認知": "具備創意輸出與內在反思的整合力，能適應變動與快速修正。",
+      "工作風格+創意展現": "兼具結構與彈性，可將概念具體化並落實為可執行方案。",
+      "工作風格+自我認知": "具備規劃力與情緒穩定性，適合內部制度設計與執行策略。",
+      "執行能力+創意展現": "具備行動力與創新聯想力，可快速嘗試新方案並實踐測試。",
+      "工作+執行+團隊": "展現高度落實力與團隊協調力，是團隊穩定輸出的中堅人才。"
+    };
+
+    const risks = {
+      "工作風格": "任務節奏與結構意識偏低，可能需較多引導與外部節奏設定。",
+      "團隊展現": "互動參與度低，易被誤解為冷漠，適合安排在獨立作業流程中。",
+      "自我認知": "對互動影響較不敏感，需搭配具回饋能力的主管加強反思機制。",
+      "執行能力": "啟動力與持續性較弱，適合任務切割明確且有回報機制之環境。",
+      "創意展現": "創新彈性較低，需具體示範或結構引導提升發想信心。"
     };
 
     function calculateAvg(scores) {
@@ -95,29 +122,39 @@
     }
 
     window.onload = () => {
-      const selector = document.getElementById("userSelector");
       const raw = localStorage.getItem("trust_test_dataset") || "[]";
       const dataset = JSON.parse(raw);
-      dataset.forEach((user, idx) => {
+      const selector = document.getElementById("userSelector");
+
+      dataset.forEach((d, i) => {
         const option = document.createElement("option");
-        option.value = idx;
-        option.text = `${user.name}｜${user.date}`;
+        option.value = i;
+        option.text = `${d.name}｜${d.date}`;
         selector.appendChild(option);
       });
 
       selector.onchange = () => {
         const index = selector.value;
         if (!index) return;
+
         const user = dataset[index];
         const avg = calculateAvg(user.scores);
-        const top = Object.entries(avg).sort((a,b) => b[1]-a[1])[0][0];
+        const sorted = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+        const top = sorted[0][0];
+        const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+        const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
 
         document.getElementById("analysisArea").style.display = "block";
         document.getElementById("radarSummary").innerText = radarSummary[top];
-        document.getElementById("personaBlock").innerText = `[模擬樣貌描述 - ${top}]`;
-        document.getElementById("advBlock").innerText = `[優勢段落 - 待加入高分組合]`;
-        document.getElementById("riskBlock").innerText = `[風險敘述 - 待加入低分組合]`;
+        document.getElementById("personaBlock").innerText = personaMap[top];
 
+        let matchedKey = high.join("+");
+        if (!strengths[matchedKey]) {
+          matchedKey = high.slice(0, 2).join("+"); // fallback to 2項組合
+        }
+        document.getElementById("advBlock").innerHTML = strengths[matchedKey] || "尚未定義組合";
+
+        document.getElementById("riskBlock").innerHTML = low.map(k => "<li>" + risks[k] + "</li>").join("");
         renderRadar(avg);
       };
     };
