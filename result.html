@@ -1,46 +1,31 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>自覺程度測驗｜結果頁</title>
+  <title>測驗結果</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
-    body {
-      font-family: 'Noto Sans TC', sans-serif;
-      background: #f8fafb;
-      padding: 2rem;
-      color: #333;
-      max-width: 800px;
-      margin: auto;
-    }
-    h1 {
-      text-align: center;
-      color: #2a4c66;
-    }
-    .result-block {
-      margin-top: 2rem;
-    }
-    .result-summary {
-      background: #eef3f9;
-      padding: 1rem;
-      border-left: 5px solid #2a4c66;
-      border-radius: 6px;
-    }
+    body { font-family: 'Noto Sans TC', sans-serif; padding: 2rem; background: #f5f7fa; max-width: 960px; margin: auto; }
+    h2, h3 { color: #1d3557; }
+    section { background: #fff; margin: 1.5rem 0; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    canvas { max-width: 100%; }
   </style>
 </head>
 <body>
-  <h1>自覺風格測驗結果</h1>
-  <div class="result-block">
-    <canvas id="radarChart" height="360"></canvas>
-  </div>
-
-  <div class="result-block">
-    <h2>風格簡述</h2>
-    <div class="result-summary" id="summaryBox">正在分析中...</div>
-  </div>
+  <h2>你的測驗結果分析</h2>
+  <p id="basicInfo">姓名 / 日期</p>
+  <section><h3>📊 雷達圖</h3><canvas id="radarChart" height="320"></canvas></section>
+  <section><h3>🔍 主導構面分析</h3><div id="personaBlock">-</div></section>
+  <section><h3>🌟 優勢組合解讀</h3><div id="advBlock">-</div></section>
+  <section><h3>⚠️ 發展提醒建議</h3><div id="riskBlock">-</div></section>
+  <section><h3>📘 雷達圖整體解說</h3><div id="radarBlock">-</div></section>
 
   <script>
-    const dimensionGroups = {
+    const res = JSON.parse(localStorage.getItem("trust_test_result") || "{}");
+    document.getElementById("basicInfo").innerText = `${res.name}｜${res.date}`;
+
+    const dimensionMap = {
       "團隊展現": [0, 1, 32],
       "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
       "執行能力": [4, 5, 19, 20, 21],
@@ -48,92 +33,63 @@
       "工作風格": [3, 7, 15, 16, 31, 33]
     };
 
-    const descriptions = {
-      dominant: {
-        "工作風格": "你擁有明確的行動邏輯與堅持，擅長在不確定中保持節奏與效率。",
-        "團隊展現": "你習慣觀察群體動態並主動調和團隊步調，是穩定互動與共識產出的催化劑。",
-        "自我認知": "你對自己的感受與言行具備高度自省能力，善於修正並調整對應他人方式。",
-        "執行能力": "你擅長把想法付諸行動，能針對目標制定步驟，並持續跟進成果。",
-        "創意展現": "你能從多角度思考與組合資訊，適合在變動中提出具突破性與創新性方案。"
-      },
-      high: {
-        "工作風格": "你展現出高度穩定的任務節奏感與持續推進力，能妥善處理多任務與突發挑戰。",
-        "團隊展現": "你具備良好的團隊協調力，善於傾聽與整合他人觀點，能讓群體互動更有彈性與流暢。",
-        "自我認知": "你有良好的情緒與認知監控能力，能從他人觀點看見自己的角色位置與影響。",
-        "執行能力": "你能有效聚焦目標並持續投入資源，展現出穩定的落實與自我監督能力。",
-        "創意展現": "你擅長打破框架，能提出具邏輯與創意交集的方案，協助組織提升多元應對能力。"
-      },
-      low: {
-        "工作風格": "你可能在不確定情境中容易延遲決策或反覆調整，影響任務節奏感。",
-        "團隊展現": "你在團隊互動中可能較為被動或選擇自我退場，減少意見的貢獻與流動。",
-        "自我認知": "你可能對自我情緒與行為的關聯不易察覺，導致行為與意圖產生誤解。",
-        "執行能力": "你可能面對明確目標時難以聚焦與持續投入，易受外界刺激分心。",
-        "創意展現": "你較傾向於依賴過往經驗與現有框架，面對創新挑戰時可能缺乏信心。"
-      }
-    };
-
-    const raw = localStorage.getItem("trust_test_result") || "[]";
-    const scores = JSON.parse(raw);
-
-    function calculateAverages(groups, scores) {
+    function calcAvg(scores) {
       const result = {};
-      for (const [key, idxList] of Object.entries(groups)) {
-        const total = idxList.reduce((sum, i) => sum + (scores[i] || 0), 0);
-        result[key] = (total / idxList.length).toFixed(2);
+      for (const [key, idxs] of Object.entries(dimensionMap)) {
+        result[key] = parseFloat((idxs.reduce((sum, i) => sum + scores[i], 0) / idxs.length).toFixed(2));
       }
       return result;
     }
 
-    const avgScores = calculateAverages(dimensionGroups, scores);
-
-    const ctx = document.getElementById('radarChart');
-    new Chart(ctx, {
-      type: 'radar',
-      data: {
-        labels: Object.keys(avgScores),
-        datasets: [{
-          label: '你的自覺風格分布',
-          data: Object.values(avgScores),
-          fill: true,
-          backgroundColor: 'rgba(65,132,183,0.2)',
-          borderColor: '#4184b7',
-          pointBackgroundColor: '#4184b7'
-        }]
-      },
-      options: {
-        scales: {
-          r: {
-            min: 1,
-            max: 3,
-            ticks: { stepSize: 0.5 },
-            pointLabels: { font: { size: 14 } }
-          }
+    function renderRadar(data) {
+      new Chart(document.getElementById("radarChart"), {
+        type: 'radar',
+        data: {
+          labels: Object.keys(data),
+          datasets: [{
+            label: '構面分數',
+            data: Object.values(data),
+            backgroundColor: 'rgba(33,111,163,0.2)',
+            borderColor: '#2170a3',
+            pointBackgroundColor: '#2170a3'
+          }]
         },
-        plugins: { legend: { display: false } }
-      }
-    });
-
-    function generateNarrative(scores) {
-      const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
-      const top = sorted[0][0];
-      const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
-      const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
-
-      let output = `<p><strong>主導風格：</strong> ${top} — ${descriptions.dominant[top]}</p>`;
-      if (high.length > 0) {
-        output += `<p><strong>優勢特質：</strong><ul>`;
-        high.forEach(k => output += `<li>${descriptions.high[k]}</li>`);
-        output += `</ul></p>`;
-      }
-      if (low.length > 0) {
-        output += `<p><strong>建議留意：</strong><ul>`;
-        low.forEach(k => output += `<li>${descriptions.low[k]}</li>`);
-        output += `</ul></p>`;
-      }
-      return output;
+        options: {
+          scales: { r: { min: 1, max: 3, ticks: { stepSize: 0.5 } } },
+          plugins: { legend: { display: false } }
+        }
+      });
     }
 
-    document.getElementById("summaryBox").innerHTML = generateNarrative(avgScores);
+    function fetchAndInject(targetId, path) {
+      fetch(path)
+        .then(res => res.text())
+        .then(html => document.getElementById(targetId).innerHTML = html)
+        .catch(() => document.getElementById(targetId).innerText = `（未能載入 ${path}）`);
+    }
+
+    const avg = calcAvg(res.scores || []);
+    const sorted = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+    const top = sorted[0][0];
+    const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+    const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
+
+    renderRadar(avg);
+    fetchAndInject("personaBlock", `persona_${top}_user.html`);
+    fetchAndInject("radarBlock", `radar_${top}_user.html`);
+
+    let advKey = high.slice(0, 3).join("_") || high.slice(0, 2).join("_");
+    fetchAndInject("advBlock", `strength_${advKey}_high_user.html`);
+
+    const riskDiv = document.getElementById("riskBlock");
+    low.forEach(k => {
+      const div = document.createElement("div");
+      riskDiv.appendChild(div);
+      fetch(`risk_${k}_low_user.html`)
+        .then(res => res.text())
+        .then(html => div.innerHTML = html)
+        .catch(() => div.innerText = `（未能載入 risk_${k}_low_user.html）`);
+    });
   </script>
 </body>
 </html>
