@@ -51,7 +51,13 @@
 </head>
 <body>
   <h1>自覺程度測驗</h1>
-  <form id="testForm"></form>
+  
+  <div class="info">
+    <input type="text" id="userName" placeholder="請輸入您的姓名" required style="font-size:1rem;padding:0.5rem;width:100%;margin-bottom:1rem;">
+    <input type="date" id="testDate" required style="font-size:1rem;padding:0.5rem;width:100%;margin-bottom:2rem;">
+  </div>
+  <form id="testForm">
+    </form>
   <button onclick="submitTest()">送出測驗</button>
 
   <script>
@@ -125,7 +131,20 @@ const questions = [
         }
         results.push(parseInt(selected.value));
       }
+      
+      const name = document.getElementById('userName').value;
+      const date = document.getElementById('testDate').value;
+      if (!name || !date) {
+        alert("請填寫姓名與日期");
+        return;
+      }
+
+      const entry = { name, date, scores: results };
+      const dataset = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
+      dataset.push(entry);
+      localStorage.setItem("trust_test_dataset", JSON.stringify(dataset));
       localStorage.setItem("trust_test_result", JSON.stringify(results));
+    
       window.location.href = "result.html";
     }
   </script>
