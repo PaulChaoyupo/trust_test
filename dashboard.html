@@ -1,0 +1,126 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>自覺程度模組｜企業後台分析</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 2rem; max-width: 960px; margin: auto; color: #333; }
+    h1, h2 { color: #1d3557; }
+    section { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 2rem; }
+    .select { padding: 0.8rem; font-size: 1rem; width: 100%; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>企業後台｜受測者分析選擇</h1>
+
+  <section>
+    <h2>📋 選擇受測者</h2>
+    <select id="userSelector" class="select">
+      <option value="">請選擇一位受測者</option>
+    </select>
+  </section>
+
+  <div id="analysisArea" style="display:none">
+    <section>
+      <h2>📊 雷達圖</h2>
+      <canvas id="radarChart" height="300"></canvas>
+    </section>
+
+    <section>
+      <h2>🔍 雷達總結語</h2>
+      <p id="radarSummary">-</p>
+    </section>
+
+    <section>
+      <h2>🧠 五構面模擬樣貌側寫</h2>
+      <div id="personaBlock">-</div>
+    </section>
+
+    <section>
+      <h2>🌟 綜合優勢特質</h2>
+      <div id="advBlock">-</div>
+    </section>
+
+    <section>
+      <h2>⚠️ 潛在注意與配置風險</h2>
+      <div id="riskBlock">-</div>
+    </section>
+  </div>
+
+  <script>
+    const dimensionMap = {
+      "團隊展現": [0, 1, 32],
+      "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
+      "執行能力": [4, 5, 19, 20, 21],
+      "創意展現": [12, 13, 14, 17, 18],
+      "工作風格": [3, 7, 15, 16, 31, 33]
+    };
+
+    const radarSummary = {
+      "工作風格": "受測者在任務組織與執行節奏上展現出清晰的個人邏輯與穩定的推進力...",
+      "團隊展現": "受測者整體風格傾向以互動節奏為工作主軸...",
+      "自我認知": "雷達圖反映出受測者具備高度的內在覺察力與反思調節能力...",
+      "執行能力": "此個體在目標落實與任務進程推動上的展現極具穩定性與責任意識...",
+      "創意展現": "雷達圖呈現出開放型探索者的展現模式..."
+    };
+
+    function calculateAvg(scores) {
+      const result = {};
+      for (const [k, v] of Object.entries(dimensionMap)) {
+        result[k] = parseFloat((v.reduce((sum, i) => sum + (scores[i] || 0), 0) / v.length).toFixed(2));
+      }
+      return result;
+    }
+
+    function renderRadar(data) {
+      new Chart(document.getElementById("radarChart"), {
+        type: 'radar',
+        data: {
+          labels: Object.keys(data),
+          datasets: [{
+            label: '五構面分布',
+            data: Object.values(data),
+            backgroundColor: 'rgba(33, 111, 163, 0.2)',
+            borderColor: '#2170a3',
+            pointBackgroundColor: '#2170a3'
+          }]
+        },
+        options: {
+          scales: { r: { min: 1, max: 3, ticks: { stepSize: 0.5 } } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    window.onload = () => {
+      const selector = document.getElementById("userSelector");
+      const raw = localStorage.getItem("trust_test_dataset") || "[]";
+      const dataset = JSON.parse(raw);
+      dataset.forEach((user, idx) => {
+        const option = document.createElement("option");
+        option.value = idx;
+        option.text = `${user.name}｜${user.date}`;
+        selector.appendChild(option);
+      });
+
+      selector.onchange = () => {
+        const index = selector.value;
+        if (!index) return;
+        const user = dataset[index];
+        const avg = calculateAvg(user.scores);
+        const top = Object.entries(avg).sort((a,b) => b[1]-a[1])[0][0];
+
+        document.getElementById("analysisArea").style.display = "block";
+        document.getElementById("radarSummary").innerText = radarSummary[top];
+        document.getElementById("personaBlock").innerText = `[模擬樣貌描述 - ${top}]`;
+        document.getElementById("advBlock").innerText = `[優勢段落 - 待加入高分組合]`;
+        document.getElementById("riskBlock").innerText = `[風險敘述 - 待加入低分組合]`;
+
+        renderRadar(avg);
+      };
+    };
+  </script>
+</body>
+</html>
