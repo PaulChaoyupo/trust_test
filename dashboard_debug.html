@@ -1,0 +1,142 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>自覺程度模組｜後台分析</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 2rem; max-width: 960px; margin: auto; color: #333; }
+    h1, h2 { color: #1d3557; }
+    section { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 2rem; }
+    .select { padding: 0.8rem; font-size: 1rem; width: 100%; margin-bottom: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>後台分析｜模組化敘述載入</h1>
+
+  <section>
+    <h2>📋 選擇受測日期與姓名</h2>
+    <label>選擇日期：</label>
+    <select id="dateSelector" class="select"><option value="">請選擇日期</option></select>
+    <label>選擇受測者：</label>
+    <select id="userSelector" class="select" disabled><option value="">請先選擇日期</option></select>
+  </section>
+
+  <div id="analysisArea" style="display:none">
+    <section><h2>📊 雷達圖</h2><canvas id="radarChart" height="300"></canvas></section>
+    <section><h2>📊 雷達圖整體解讀</h2><div id="radarBlock">-</div></section>
+<section><h2>🔍 主導構面模擬敘述</h2><div id="personaBlock">-</div></section>
+    <section><h2>🌟 高分組合優勢</h2><div id="advBlock">-</div></section>
+    <section><h2>⚠️ 低分構面風險建議</h2><div id="riskBlock">-</div></section>
+  </div>
+
+  <script>
+    const dimensionMap = {
+      "團隊展現": [0, 1, 32],
+      "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
+      "執行能力": [4, 5, 19, 20, 21],
+      "創意展現": [12, 13, 14, 17, 18],
+      "工作風格": [3, 7, 15, 16, 31, 33]
+    };
+
+    function calculateAvg(scores) {
+      const result = {};
+      for (const [k, v] of Object.entries(dimensionMap)) {
+        result[k] = parseFloat((v.reduce((sum, i) => sum + (scores[i] || 0), 0) / v.length).toFixed(2));
+      }
+      return result;
+    }
+
+    function renderRadar(data) {
+      new Chart(document.getElementById("radarChart"), {
+        type: 'radar',
+        data: {
+          labels: Object.keys(data),
+          datasets: [{
+            label: '五構面分數',
+            data: Object.values(data),
+            backgroundColor: 'rgba(33, 111, 163, 0.2)',
+            borderColor: '#2170a3', pointBackgroundColor: '#2170a3'
+          }]
+        },
+        options: {
+          scales: { r: { min: 1, max: 3, ticks: { stepSize: 0.5 } } },
+          plugins: { legend: { display: false } }
+        }
+      });
+    }
+
+    async function fetchAndInject(targetId, path) {
+      try {
+        console.log("🔍 載入模組：", path);
+      const res = await fetch(path);
+        const html = await res.text();
+        document.getElementById(targetId).innerHTML = html;
+      } catch {
+        document.getElementById(targetId).innerText = "（找不到資料：" + path + "）";
+      }
+    }
+
+    window.onload = () => {
+      const dataset = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
+      const dateSelector = document.getElementById("dateSelector");
+      const nameSelector = document.getElementById("userSelector");
+      const dates = [...new Set(dataset.map(d => d.date))];
+      dates.forEach(date => {
+        const opt = document.createElement("option");
+        opt.value = date; opt.text = date;
+        dateSelector.appendChild(opt);
+      });
+
+      dateSelector.onchange = () => {
+        nameSelector.innerHTML = "<option value=''>請選擇姓名</option>";
+        nameSelector.disabled = false;
+        const date = dateSelector.value;
+        const filtered = dataset.filter(d => d.date === date);
+        filtered.forEach((d, i) => {
+          const opt = document.createElement("option");
+          opt.value = i;
+          opt.text = d.name;
+          nameSelector.appendChild(opt);
+        });
+
+        nameSelector.onchange = () => {
+          const name = nameSelector.options[nameSelector.selectedIndex].text;
+          const entry = filtered.find(d => d.name === name);
+          if (!entry) return;
+
+          const avg = calculateAvg(entry.scores);
+          const sorted = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+          const top = sorted[0][0];
+          const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+          const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
+
+          document.getElementById("analysisArea").style.display = "block";
+          renderRadar(avg);
+
+          // 載入主導構面敘述
+          fetchAndInject("radarBlock", `radar_${top}.html`);
+          fetchAndInject("personaBlock", `persona_${top}.html`);
+
+          // 載入高分優勢敘述（最多三個構面組合）
+          let key = high.slice(0, 3).join("_") || high.slice(0, 2).join("_");
+          fetchAndInject("advBlock", `strength_${key}_high.html`);
+
+          // 載入低分構面風險建議
+          document.getElementById("riskBlock").innerHTML = "";
+          low.forEach(k => {
+            const div = document.createElement("div");
+            document.getElementById("riskBlock").appendChild(div);
+            console.log("🔍 載入風險模組：", `risk_${k}_low.html`);
+            fetch(`risk_${k}_low.html`)
+              .then(res => res.text())
+              .then(html => div.innerHTML = html)
+              .catch(() => div.innerText = `（找不到風險說明 risk_${k}_low.html）`);
+          });
+        };
+      };
+    };
+  </script>
+</body>
+</html>
