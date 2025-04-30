@@ -10,87 +10,56 @@
     h1, h2 { color: #1d3557; }
     section { background: #fff; border-radius: 8px; padding: 1.5rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 2rem; }
     .select { padding: 0.8rem; font-size: 1rem; width: 100%; margin-bottom: 1rem; }
-    ul { padding-left: 1.2rem; }
   </style>
 </head>
 <body>
-  <h1>企業後台｜受測者分析選擇</h1>
+  <h1>企業後台｜雙層篩選分析</h1>
 
   <section>
-    <h2>📋 選擇受測者</h2>
-    <select id="userSelector" class="select">
-      <option value="">請選擇一位受測者</option>
-    </select>
+    <h2>📋 選擇受測日期與姓名</h2>
+    <label>選擇日期：</label>
+    <select id="dateSelector" class="select"><option value="">請選擇日期</option></select>
+    <label>選擇受測者：</label>
+    <select id="userSelector" class="select" disabled><option value="">請先選擇日期</option></select>
   </section>
 
   <div id="analysisArea" style="display:none">
-    <section>
-      <h2>📊 雷達圖</h2>
-      <canvas id="radarChart" height="300"></canvas>
-    </section>
-
-    <section>
-      <h2>🔍 雷達總結語</h2>
-      <p id="radarSummary">-</p>
-    </section>
-
-    <section>
-      <h2>🧠 五構面模擬樣貌側寫</h2>
-      <div id="personaBlock">-</div>
-    </section>
-
-    <section>
-      <h2>🌟 綜合優勢特質</h2>
-      <div id="advBlock">-</div>
-    </section>
-
-    <section>
-      <h2>⚠️ 潛在注意與配置風險</h2>
-      <div id="riskBlock">-</div>
-    </section>
+    <section><h2>📊 雷達圖</h2><canvas id="radarChart" height="300"></canvas></section>
+    <section><h2>🔍 雷達總結語</h2><p id="radarSummary">-</p></section>
+    <section><h2>🧠 模擬樣貌</h2><div id="personaBlock">-</div></section>
+    <section><h2>🌟 優勢敘述</h2><div id="advBlock">-</div></section>
+    <section><h2>⚠️ 風險敘述</h2><div id="riskBlock">-</div></section>
   </div>
 
   <script>
     const dimensionMap = {
-      "團隊展現": [0, 1, 32],
-      "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
-      "執行能力": [4, 5, 19, 20, 21],
-      "創意展現": [12, 13, 14, 17, 18],
-      "工作風格": [3, 7, 15, 16, 31, 33]
+      "團隊展現": [0, 1, 32], "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
+      "執行能力": [4, 5, 19, 20, 21], "創意展現": [12, 13, 14, 17, 18], "工作風格": [3, 7, 15, 16, 31, 33]
     };
 
-    const radarSummary = {
-      "工作風格": "受測者在任務組織與執行節奏上展現出清晰的個人邏輯與穩定的推進力。",
-      "團隊展現": "受測者整體風格傾向以互動節奏為主，擅於穩定團隊互動並協調進度。",
-      "自我認知": "具備內在覺察與情緒調節的穩定特質，擅長自我修正並理解互動關係。",
-      "執行能力": "展現高效行動力與執行節奏，是專案任務中的穩定落實者。",
-      "創意展現": "具備突破框架與多角度整合的潛能，適合在創新任務中展現價值。"
-    };
-
-    const personaMap = {
-      "工作風格": "他是一位具有高度任務感與節奏意識的成員，習慣以具體行動與時程來組織工作...",
-      "團隊展現": "他在團隊中屬於具有高社會敏感度的協作者，能迅速察覺現場情緒與互動氛圍...",
-      "自我認知": "他是一位高度自省與自我調整意識明確的人，對於語言、情緒與他人影響非常敏感...",
-      "執行能力": "他是一位極具實作導向的人，習慣將任何模糊的概念轉化為可執行的任務...",
-      "創意展現": "他擅長重組觀點與跳脫常規思維，常在問題膠著時提出反向提案或異業解法..."
+    const summaries = {
+      "工作風格": "你擁有明確的行動邏輯與堅持，擅長在不確定中保持節奏與效率。",
+      "團隊展現": "你習慣觀察群體動態並主動調和團隊步調，是穩定互動與共識產出的催化劑。",
+      "自我認知": "你對自己的感受與言行具備高度自省能力，善於修正並調整對應他人方式。",
+      "執行能力": "你擅長把想法付諸行動，能針對目標制定步驟，並持續跟進成果。",
+      "創意展現": "你能從多角度思考與組合資訊，適合在變動中提出具突破性與創新性方案。"
     };
 
     const strengths = {
-      "工作風格+執行能力": "展現出明確的任務節奏與落實力，適合長期任務推動與系統化管理。",
-      "團隊展現+自我認知": "兼具社會敏感度與自我調整能力，擅長協調與同理的角色。",
-      "創意展現+自我認知": "具備創意輸出與內在反思的整合力，能適應變動與快速修正。",
-      "工作風格+創意展現": "兼具結構與彈性，可將概念具體化並落實為可執行方案。",
-      "工作風格+自我認知": "具備規劃力與情緒穩定性，適合內部制度設計與執行策略。",
-      "執行能力+創意展現": "具備行動力與創新聯想力，可快速嘗試新方案並實踐測試。",
-      "工作+執行+團隊": "展現高度落實力與團隊協調力，是團隊穩定輸出的中堅人才。"
+      "工作風格+執行能力": "具備節奏感與責任意識，適合推動穩定任務或長期計畫。",
+      "團隊展現+自我認知": "具備人際感知與自我修正力，適合文化導入、教練培育角色。",
+      "創意展現+自我認知": "能創造概念並快速修正，適合變動環境或策略設計場域。",
+      "工作風格+創意展現": "能具體化創意並推動執行，是組織內的創新整合者。",
+      "執行能力+創意展現": "具備創意想法與實踐能力，適合研發、產品原型、測試類任務。",
+      "工作+執行+團隊": "三強構面者為任務與人際推進兼具，是可被培養的領導潛能人才。"
     };
 
     const risks = {
-      "工作風格": "任務節奏與結構意識偏低，可能需較多引導與外部節奏設定。",
-      "團隊展現": "互動參與度低，易被誤解為冷漠，適合安排在獨立作業流程中。",
-      "自我認知": "對互動影響較不敏感，需搭配具回饋能力的主管加強反思機制。",
-      "執行能力": "啟動力與持續性較弱，適合任務切割明確且有回報機制之環境。",
-      "創意展現": "創新彈性較低，需具體示範或結構引導提升發想信心。"
+      "工作風格": "節奏與任務掌握較弱，建議搭配有結構主管與週期提醒機制。",
+      "團隊展現": "互動參與度低，可能在團體中邊緣化，建議提供角色設定與引導。",
+      "自我認知": "較少自我反思，可能難以接受回饋，建議有歷程回顧與同儕觀察支持。",
+      "執行能力": "執行起伏大，適合短期任務拆解與階段回報設計。",
+      "創意展現": "創新彈性低，建議參考案例式發想或模板輔助思維拓展。"
     };
 
     function calculateAvg(scores) {
@@ -107,11 +76,10 @@
         data: {
           labels: Object.keys(data),
           datasets: [{
-            label: '五構面分布',
+            label: '五構面分數',
             data: Object.values(data),
             backgroundColor: 'rgba(33, 111, 163, 0.2)',
-            borderColor: '#2170a3',
-            pointBackgroundColor: '#2170a3'
+            borderColor: '#2170a3', pointBackgroundColor: '#2170a3'
           }]
         },
         options: {
@@ -122,40 +90,50 @@
     }
 
     window.onload = () => {
-      const raw = localStorage.getItem("trust_test_dataset") || "[]";
-      const dataset = JSON.parse(raw);
-      const selector = document.getElementById("userSelector");
-
-      dataset.forEach((d, i) => {
-        const option = document.createElement("option");
-        option.value = i;
-        option.text = `${d.name}｜${d.date}`;
-        selector.appendChild(option);
+      const dataset = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
+      const dateSelector = document.getElementById("dateSelector");
+      const nameSelector = document.getElementById("userSelector");
+      const dates = [...new Set(dataset.map(d => d.date))];
+      dates.forEach(date => {
+        const opt = document.createElement("option");
+        opt.value = date; opt.text = date;
+        dateSelector.appendChild(opt);
       });
 
-      selector.onchange = () => {
-        const index = selector.value;
-        if (!index) return;
+      dateSelector.onchange = () => {
+        nameSelector.innerHTML = "<option value=''>請選擇姓名</option>";
+        nameSelector.disabled = false;
+        const date = dateSelector.value;
+        const filtered = dataset.filter(d => d.date === date);
+        filtered.forEach((d, i) => {
+          const opt = document.createElement("option");
+          opt.value = i;
+          opt.text = d.name;
+          nameSelector.appendChild(opt);
+        });
 
-        const user = dataset[index];
-        const avg = calculateAvg(user.scores);
-        const sorted = Object.entries(avg).sort((a, b) => b[1] - a[1]);
-        const top = sorted[0][0];
-        const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
-        const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
+        nameSelector.onchange = () => {
+          const name = nameSelector.options[nameSelector.selectedIndex].text;
+          const entry = filtered.find(d => d.name === name);
+          if (!entry) return;
 
-        document.getElementById("analysisArea").style.display = "block";
-        document.getElementById("radarSummary").innerText = radarSummary[top];
-        document.getElementById("personaBlock").innerText = personaMap[top];
+          const avg = calculateAvg(entry.scores);
+          const sorted = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+          const top = sorted[0][0];
+          const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+          const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
 
-        let matchedKey = high.join("+");
-        if (!strengths[matchedKey]) {
-          matchedKey = high.slice(0, 2).join("+"); // fallback to 2項組合
-        }
-        document.getElementById("advBlock").innerHTML = strengths[matchedKey] || "尚未定義組合";
+          document.getElementById("analysisArea").style.display = "block";
+          document.getElementById("radarSummary").innerText = summaries[top];
+          document.getElementById("personaBlock").innerText = "主導構面模擬樣貌：" + summaries[top];
 
-        document.getElementById("riskBlock").innerHTML = low.map(k => "<li>" + risks[k] + "</li>").join("");
-        renderRadar(avg);
+          let key = high.slice(0, 3).join("+");
+          if (!strengths[key]) key = high.slice(0, 2).join("+");
+          document.getElementById("advBlock").innerText = strengths[key] || "未定義高分組合";
+
+          document.getElementById("riskBlock").innerHTML = "<ul>" + low.map(k => "<li>" + risks[k] + "</li>").join("") + "</ul>";
+          renderRadar(avg);
+        };
       };
     };
   </script>
