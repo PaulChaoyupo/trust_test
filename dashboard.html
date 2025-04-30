@@ -3,7 +3,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>自覺程度模組｜企業後台分析</title>
+  <title>自覺程度模組｜後台分析</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: 'Noto Sans TC', sans-serif; background: #f5f7fa; padding: 2rem; max-width: 960px; margin: auto; color: #333; }
@@ -13,7 +13,7 @@
   </style>
 </head>
 <body>
-  <h1>企業後台｜雙層篩選分析</h1>
+  <h1>後台分析｜模組化敘述載入</h1>
 
   <section>
     <h2>📋 選擇受測日期與姓名</h2>
@@ -25,41 +25,19 @@
 
   <div id="analysisArea" style="display:none">
     <section><h2>📊 雷達圖</h2><canvas id="radarChart" height="300"></canvas></section>
-    <section><h2>🔍 雷達總結語</h2><p id="radarSummary">-</p></section>
-    <section><h2>🧠 模擬樣貌</h2><div id="personaBlock">-</div></section>
-    <section><h2>🌟 優勢敘述</h2><div id="advBlock">-</div></section>
-    <section><h2>⚠️ 風險敘述</h2><div id="riskBlock">-</div></section>
+    <section><h2>📊 雷達圖整體解讀</h2><div id="radarBlock">-</div></section>
+<section><h2>🔍 主導構面模擬敘述</h2><div id="personaBlock">-</div></section>
+    <section><h2>🌟 高分組合優勢</h2><div id="advBlock">-</div></section>
+    <section><h2>⚠️ 低分構面風險建議</h2><div id="riskBlock">-</div></section>
   </div>
 
   <script>
     const dimensionMap = {
-      "團隊展現": [0, 1, 32], "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
-      "執行能力": [4, 5, 19, 20, 21], "創意展現": [12, 13, 14, 17, 18], "工作風格": [3, 7, 15, 16, 31, 33]
-    };
-
-    const summaries = {
-      "工作風格": "你擁有明確的行動邏輯與堅持，擅長在不確定中保持節奏與效率。",
-      "團隊展現": "你習慣觀察群體動態並主動調和團隊步調，是穩定互動與共識產出的催化劑。",
-      "自我認知": "你對自己的感受與言行具備高度自省能力，善於修正並調整對應他人方式。",
-      "執行能力": "你擅長把想法付諸行動，能針對目標制定步驟，並持續跟進成果。",
-      "創意展現": "你能從多角度思考與組合資訊，適合在變動中提出具突破性與創新性方案。"
-    };
-
-    const strengths = {
-      "工作風格+執行能力": "具備節奏感與責任意識，適合推動穩定任務或長期計畫。",
-      "團隊展現+自我認知": "具備人際感知與自我修正力，適合文化導入、教練培育角色。",
-      "創意展現+自我認知": "能創造概念並快速修正，適合變動環境或策略設計場域。",
-      "工作風格+創意展現": "能具體化創意並推動執行，是組織內的創新整合者。",
-      "執行能力+創意展現": "具備創意想法與實踐能力，適合研發、產品原型、測試類任務。",
-      "工作+執行+團隊": "三強構面者為任務與人際推進兼具，是可被培養的領導潛能人才。"
-    };
-
-    const risks = {
-      "工作風格": "節奏與任務掌握較弱，建議搭配有結構主管與週期提醒機制。",
-      "團隊展現": "互動參與度低，可能在團體中邊緣化，建議提供角色設定與引導。",
-      "自我認知": "較少自我反思，可能難以接受回饋，建議有歷程回顧與同儕觀察支持。",
-      "執行能力": "執行起伏大，適合短期任務拆解與階段回報設計。",
-      "創意展現": "創新彈性低，建議參考案例式發想或模板輔助思維拓展。"
+      "團隊展現": [0, 1, 32],
+      "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
+      "執行能力": [4, 5, 19, 20, 21],
+      "創意展現": [12, 13, 14, 17, 18],
+      "工作風格": [3, 7, 15, 16, 31, 33]
     };
 
     function calculateAvg(scores) {
@@ -87,6 +65,16 @@
           plugins: { legend: { display: false } }
         }
       });
+    }
+
+    async function fetchAndInject(targetId, path) {
+      try {
+        const res = await fetch(path);
+        const html = await res.text();
+        document.getElementById(targetId).innerHTML = html;
+      } catch {
+        document.getElementById(targetId).innerText = "（找不到資料：" + path + "）";
+      }
     }
 
     window.onload = () => {
@@ -124,15 +112,26 @@
           const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
 
           document.getElementById("analysisArea").style.display = "block";
-          document.getElementById("radarSummary").innerText = summaries[top];
-          document.getElementById("personaBlock").innerText = "主導構面模擬樣貌：" + summaries[top];
-
-          let key = high.slice(0, 3).join("+");
-          if (!strengths[key]) key = high.slice(0, 2).join("+");
-          document.getElementById("advBlock").innerText = strengths[key] || "未定義高分組合";
-
-          document.getElementById("riskBlock").innerHTML = "<ul>" + low.map(k => "<li>" + risks[k] + "</li>").join("") + "</ul>";
           renderRadar(avg);
+
+          // 載入主導構面敘述
+          fetchAndInject("radarBlock", `radar_${top}.html`);
+          fetchAndInject("personaBlock", `persona_${top}.html`);
+
+          // 載入高分優勢敘述（最多三個構面組合）
+          let key = high.slice(0, 3).join("_") || high.slice(0, 2).join("_");
+          fetchAndInject("advBlock", `strength_${key}_high.html`);
+
+          // 載入低分構面風險建議
+          document.getElementById("riskBlock").innerHTML = "";
+          low.forEach(k => {
+            const div = document.createElement("div");
+            document.getElementById("riskBlock").appendChild(div);
+            fetch(`risk_${k}_low.html`)
+              .then(res => res.text())
+              .then(html => div.innerHTML = html)
+              .catch(() => div.innerText = `（找不到風險說明 risk_${k}_low.html）`);
+          });
         };
       };
     };
