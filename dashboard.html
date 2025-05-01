@@ -137,10 +137,10 @@
         document.getElementById("analysisArea").style.display = "block";
         drawRadar(avg);
         loadText("radarBlock", `radar_${top}.html`);
-        loadText("personaBlock", `persona_${top}.html`);
+        loadText("personaBlock", `persona_${top}.html`).catch(() => document.getElementById("personaBlock").innerHTML = "❌ 無法載入主導構面敘述");
 
         const advKey = high.slice(0, 3).join("_") || high.slice(0, 2).join("_");
-        loadText("advBlock", `strength_${advKey}_high.html`);
+        loadText("advBlock", `strength_${advKey}_high.html`).catch(() => document.getElementById("advBlock").innerHTML = "❌ 無法載入優勢組合說明");
 
         const riskDiv = document.getElementById("riskBlock");
         riskDiv.innerHTML = "";
@@ -149,7 +149,7 @@
           riskDiv.appendChild(div);
           fetch(`risk_${k}_low.html`)
             .then(res => res.text())
-            .then(html => div.innerHTML = html)
+            .then(html => div.innerHTML = html).catch(() => div.innerHTML = '<p style=\'color:red\'>❌ 無法載入 risk 模組</p>')
             .catch(() => div.innerText = `找不到風險 risk_${k}_low.html`);
         });
 

@@ -75,19 +75,31 @@
     const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
 
     renderRadar(avg);
-    fetchAndInject("personaBlock", `persona_${top}_user.html`);
-    fetchAndInject("radarBlock", `radar_${top}_user.html`);
+    fetch(`persona_${top}_user.html`)
+      .then(res => res.ok ? res.text() : Promise.reject())
+      .then(html => document.getElementById("personaBlock").innerHTML = html)
+      .catch(() => document.getElementById("personaBlock").innerHTML = "<p style='color:red'>❌ 無法載入 persona_${top}_user.html</p>");
+    fetch(`radar_${top}_user.html`)
+      .then(res => res.ok ? res.text() : Promise.reject())
+      .then(html => document.getElementById("radarBlock").innerHTML = html)
+      .catch(() => document.getElementById("radarBlock").innerHTML = "<p style='color:red'>❌ 無法載入 radar_${top}_user.html</p>");
 
     let advKey = high.slice(0, 3).join("_") || high.slice(0, 2).join("_");
-    fetchAndInject("advBlock", `strength_${advKey}_high_user.html`);
+    fetch(`strength_${advKey}_high_user.html`)
+      .then(res => res.ok ? res.text() : Promise.reject())
+      .then(html => document.getElementById("advBlock").innerHTML = html)
+      .catch(() => document.getElementById("advBlock").innerHTML = "<p style='color:red'>❌ 無法載入 strength_${advKey}_high_user.html</p>");
 
     const riskDiv = document.getElementById("riskBlock");
     low.forEach(k => {
       const div = document.createElement("div");
       riskDiv.appendChild(div);
-      fetch(`risk_${k}_low_user.html`)
+      fetch(`risk_${k}_low_user.html`).then(res => {
+      if (!res.ok) throw new Error();
+      return res.text();
+    })
         .then(res => res.text())
-        .then(html => div.innerHTML = html)
+        .then(html => div.innerHTML = html).catch(() => div.innerHTML = '<p style=\'color:red\'>❌ 無法載入 risk 模組</p>')
         .catch(() => div.innerText = `（未能載入 risk_${k}_low_user.html）`);
     });
   </script>
