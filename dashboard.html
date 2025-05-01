@@ -77,9 +77,16 @@ function loadText(id,path){fetch(path).then(r=>r.ok?r.text():Promise.reject()).t
 loadText("personaBlock",`persona_${top}.html`);
 loadText("advBlock",`strength_${advKey}_high.html`);
 document.getElementById("riskBlock").innerHTML="";
-low.forEach(k=>{const d=document.createElement("div");document.getElementById("riskBlock").appendChild(d);
-const riskKey=`risk_${k}_low.html`;
-fetch(riskKey).then(r=>{if(!r.ok)throw new Error();return r.text();}).then(h=>d.innerHTML=h).catch(()=>d.innerHTML=`❌ 無法載入 ${riskKey}`);
+const lowLimited = sorted.slice(-2).map(([k]) => k);
+document.getElementById("riskBlock").innerHTML = "";
+lowLimited.forEach(k => {
+const d = document.createElement("div");
+document.getElementById("riskBlock").appendChild(d);
+const riskKey = `risk_${k}_low.html`;
+fetch(riskKey)
+.then(r => { if (!r.ok) throw new Error(); return r.text(); })
+.then(h => d.innerHTML = h)
+.catch(() => d.innerHTML = `❌ 無法載入 ${riskKey}`);
 });
 const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum, i) => sum + e.scores[i], 0) / 13;
 const awarenessLevel = awarenessAvg < 2.1 ? 'low' : awarenessAvg >= 2.6 ? 'high' : 'balanced';
