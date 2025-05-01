@@ -78,7 +78,8 @@ dates.forEach(d=>{const o=document.createElement("option");
 o.value=o.text=d;dateSel.appendChild(o);});
 
 dateSel.onchange=()=>{userSel.innerHTML="<option value=''>請選擇</option>";
-userSel.disabled=false;const f=ds.filter(d=>d.date===dateSel.value);
+userSel.disabled=false;const selectedDate = dateSel.value.replace(/-/g, "/");
+const f = ds.filter(d => d.date.replace(/-/g, "/") === selectedDate);
 f.forEach((d,i)=>{const o=document.createElement("option");
 o.value=i;o.text=d.name;userSel.appendChild(o);});
 
