@@ -44,7 +44,8 @@
       const top = sorted[0][0];
       const high = sorted.filter(([_,v]) => v >= 2.6).map(([k]) => k);
       const low = sorted.filter(([_,v]) => v < 2.1).map(([k]) => k);
-      const advKey = high.slice(0,3).sort().join("_") || high.slice(0,2).sort().join("_");
+      const advKey = high.length ? high.slice(0,3).sort().join("_") : "general";
+
 
       new Chart(document.getElementById("radarChart"), {
         type: 'radar',
@@ -65,7 +66,7 @@
 
       const riskDiv = document.getElementById("riskBlock");
  low.forEach(k=>{
-  if (k) {  //
+  if (k) {
     const div = document.createElement("div");
     riskDiv.appendChild(div);
     const riskKey = `risk_${k}_low_user.html`;
