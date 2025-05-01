@@ -16,20 +16,63 @@
   <div id="radarBlock">雷達圖整體解說載入中...</div>
   <script>
     const res = JSON.parse(localStorage.getItem("trust_test_result") || "{}");
-    document.getElementById("basicInfo").innerText = `${res.name}｜${res.date}`;
-    const dimensionMap = {"團隊展現":[0],"自我認知":[1],"執行能力":[2],"創意展現":[3],"工作風格":[4]};
-    const dimensionKeyMap = {"團隊展現":"team","自我認知":"awareness","執行能力":"execution","創意展現":"creativity","工作風格":"workstyle"};
-    const avg = {}; Object.keys(dimensionMap).forEach(k=>avg[k]=2.5);
-    const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v])=>[dimensionKeyMap[k],v]));
-    const sorted = Object.entries(avgKey).sort((a,b)=>b[1]-a[1]);
-    const top = sorted[0][0]; const high = sorted.filter(([_,v])=>v>=2.6).map(([k])=>k);
-    const advKey = high.slice(0,3).sort().join("_")||high.slice(0,2).sort().join("_");
-    function fetchInject(id,path){fetch(path).then(r=>r.ok?r.text():Promise.reject()).then(t=>document.getElementById(id).innerHTML=t).catch(()=>document.getElementById(id).innerHTML=`❌ 無法載入 ${path}`);}
-    fetchInject("personaBlock",`persona_${top}_user.html`);
-    fetchInject("advBlock",`strength_${advKey}_high_user.html`);
-    fetchInject("radarBlock",`radar_${top}_user.html`);
-    const riskDiv = document.getElementById("riskBlock");
-    high.forEach(k=>{const d=document.createElement("div");riskDiv.appendChild(d);fetch(`risk_${k}_low_user.html`).then(r=>{if(!r.ok)throw new Error();return r.text();}).then(h=>d.innerHTML=h).catch(()=>d.innerHTML=`❌ 無法載入 risk_${k}_low_user.html`);});
+    if (!res.name || !res.scores) {
+      document.body.innerHTML = "<h3 style='color:red'>⚠️ 尚未填寫測驗，請先完成測驗再查看結果</h3>";
+    } else {
+      document.getElementById("basicInfo").innerText = `${res.name}｜${res.date}`;
+      const dimensionMap = {
+        "團隊展現": [0,1,32],
+        "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
+        "執行能力": [4,5,19,20,21],
+        "創意展現": [12,13,14,17,18],
+        "工作風格": [3,7,15,16,31,33]
+      };
+      const dimensionKeyMap = {
+        "團隊展現": "team",
+        "自我認知": "awareness",
+        "執行能力": "execution",
+        "創意展現": "creativity",
+        "工作風格": "workstyle"
+      };
+      const avg = {};
+      for (const [dim, idxs] of Object.entries(dimensionMap)) {
+        avg[dim] = idxs.reduce((sum, i) => sum + res.scores[i], 0) / idxs.length;
+      }
+      const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
+      const sorted = Object.entries(avgKey).sort((a,b) => b[1]-a[1]);
+      const top = sorted[0][0];
+      const high = sorted.filter(([_,v]) => v >= 2.6).map(([k]) => k);
+      const low = sorted.filter(([_,v]) => v < 2.1).map(([k]) => k);
+      const advKey = high.slice(0,3).sort().join("_") || high.slice(0,2).sort().join("_");
+
+      new Chart(document.getElementById("radarChart"), {
+        type: 'radar',
+        data: { labels: Object.keys(avgKey), datasets: [{ label: '構面分數', data: Object.values(avgKey), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
+        options: { scales: { r: { min:1, max:3, ticks:{ stepSize:0.5 } } }, plugins:{ legend:{ display:false } } }
+      });
+
+      function fetchInject(id,path){
+        fetch(path)
+          .then(r=>r.ok?r.text():Promise.reject())
+          .then(t=>document.getElementById(id).innerHTML=t)
+          .catch(()=>document.getElementById(id).innerHTML=`❌ 無法載入 ${path}`);
+      }
+
+      fetchInject("personaBlock", `persona_${top}_user.html`);
+      fetchInject("advBlock", `strength_${advKey}_high_user.html`);
+      fetchInject("radarBlock", `radar_${top}_user.html`);
+
+      const riskDiv = document.getElementById("riskBlock");
+      low.forEach(k=>{
+        const div = document.createElement("div");
+        riskDiv.appendChild(div);
+        const riskKey = `risk_${k}_low_user.html`;
+        fetch(riskKey)
+          .then(r=>{ if(!r.ok) throw new Error(); return r.text(); })
+          .then(h=>div.innerHTML=h)
+          .catch(()=>div.innerHTML=`❌ 無法載入 ${riskKey}`);
+      });
+    }
   </script>
 </body>
 </html>
