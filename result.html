@@ -64,15 +64,18 @@
       fetchInject("radarBlock", `radar_${top}_user.html`);
 
       const riskDiv = document.getElementById("riskBlock");
-      low.forEach(k=>{
-        const div = document.createElement("div");
-        riskDiv.appendChild(div);
-        const riskKey = `risk_${k}_low_user.html`;
-        fetch(riskKey)
-          .then(r=>{ if(!r.ok) throw new Error(); return r.text(); })
-          .then(h=>div.innerHTML=h)
-          .catch(()=>div.innerHTML=`❌ 無法載入 ${riskKey}`);
-      });
+ low.forEach(k=>{
+  if (k) {  //
+    const div = document.createElement("div");
+    riskDiv.appendChild(div);
+    const riskKey = `risk_${k}_low_user.html`;
+    fetch(riskKey)
+      .then(r=>{ if(!r.ok) throw new Error(); return r.text(); })
+      .then(h=>div.innerHTML=h)
+      .catch(()=>div.innerHTML=`❌ 無法載入 ${riskKey}`);
+  }
+});
+
     }
   </script>
 </body>
