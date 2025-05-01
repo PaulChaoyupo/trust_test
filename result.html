@@ -69,7 +69,20 @@
     }
 
     const avg = calcAvg(res.scores || []);
-    const sorted = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+    
+    const dimensionKeyMap = {
+      "團隊展現": "team",
+      "自我認知": "awareness",
+      "執行能力": "execution",
+      "創意展現": "creativity",
+      "工作風格": "workstyle"
+    };
+    const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
+    const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
+    const top = sorted[0][0];
+    const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+    const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
+
     const top = sorted[0][0];
     const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
     const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
@@ -92,9 +105,10 @@
 
     const riskDiv = document.getElementById("riskBlock");
     low.forEach(k => {
+  const riskKey = `risk_${k}_low_user.html`;
       const div = document.createElement("div");
       riskDiv.appendChild(div);
-      fetch(`risk_${k}_low_user.html`).then(res => {
+      fetch(riskKey).then(res => {
       if (!res.ok) throw new Error();
       return res.text();
     })
