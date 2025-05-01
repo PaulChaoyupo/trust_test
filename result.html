@@ -5,117 +5,31 @@
   <meta charset="UTF-8">
   <title>測驗結果</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: 'Noto Sans TC', sans-serif; padding: 2rem; background: #f5f7fa; max-width: 960px; margin: auto; }
-    h2, h3 { color: #1d3557; }
-    section { background: #fff; margin: 1.5rem 0; padding: 1rem 1.5rem; border-radius: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
-    canvas { max-width: 100%; }
-  </style>
 </head>
 <body>
   <h2>你的測驗結果分析</h2>
   <p id="basicInfo">姓名 / 日期</p>
-  <section><h3>📊 雷達圖</h3><canvas id="radarChart" height="320"></canvas></section>
-  <section><h3>🔍 主導構面分析</h3><div id="personaBlock">-</div></section>
-  <section><h3>🌟 優勢組合解讀</h3><div id="advBlock">-</div></section>
-  <section><h3>⚠️ 發展提醒建議</h3><div id="riskBlock">-</div></section>
-  <section><h3>📘 雷達圖整體解說</h3><div id="radarBlock">-</div></section>
-
+  <canvas id="radarChart" height="320"></canvas>
+  <div id="personaBlock">主導構面敘述載入中...</div>
+  <div id="advBlock">優勢組合說明載入中...</div>
+  <div id="riskBlock">低分構面風險建議載入中...</div>
+  <div id="radarBlock">雷達圖整體解說載入中...</div>
   <script>
     const res = JSON.parse(localStorage.getItem("trust_test_result") || "{}");
     document.getElementById("basicInfo").innerText = `${res.name}｜${res.date}`;
-
-    const dimensionMap = {
-      "團隊展現": [0, 1, 32],
-      "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
-      "執行能力": [4, 5, 19, 20, 21],
-      "創意展現": [12, 13, 14, 17, 18],
-      "工作風格": [3, 7, 15, 16, 31, 33]
-    };
-
-    function calcAvg(scores) {
-      const result = {};
-      for (const [key, idxs] of Object.entries(dimensionMap)) {
-        result[key] = parseFloat((idxs.reduce((sum, i) => sum + scores[i], 0) / idxs.length).toFixed(2));
-      }
-      return result;
-    }
-
-    function renderRadar(data) {
-      new Chart(document.getElementById("radarChart"), {
-        type: 'radar',
-        data: {
-          labels: Object.keys(data),
-          datasets: [{
-            label: '構面分數',
-            data: Object.values(data),
-            backgroundColor: 'rgba(33,111,163,0.2)',
-            borderColor: '#2170a3',
-            pointBackgroundColor: '#2170a3'
-          }]
-        },
-        options: {
-          scales: { r: { min: 1, max: 3, ticks: { stepSize: 0.5 } } },
-          plugins: { legend: { display: false } }
-        }
-      });
-    }
-
-    function fetchAndInject(targetId, path) {
-      fetch(path)
-        .then(res => res.text())
-        .then(html => document.getElementById(targetId).innerHTML = html)
-        .catch(() => document.getElementById(targetId).innerText = `（未能載入 ${path}）`);
-    }
-
-    const avg = calcAvg(res.scores || []);
-    
-    const dimensionKeyMap = {
-      "團隊展現": "team",
-      "自我認知": "awareness",
-      "執行能力": "execution",
-      "創意展現": "creativity",
-      "工作風格": "workstyle"
-    };
-    const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
-    const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
-    const top = sorted[0][0];
-    const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
-    const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
-
-    const top = sorted[0][0];
-    const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
-    const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
-
-    renderRadar(avg);
-    fetch(`persona_${top}_user.html`)
-      .then(res => res.ok ? res.text() : Promise.reject())
-      .then(html => document.getElementById("personaBlock").innerHTML = html)
-      .catch(() => document.getElementById("personaBlock").innerHTML = "<p style='color:red'>❌ 無法載入 persona_${top}_user.html</p>");
-    fetch(`radar_${top}_user.html`)
-      .then(res => res.ok ? res.text() : Promise.reject())
-      .then(html => document.getElementById("radarBlock").innerHTML = html)
-      .catch(() => document.getElementById("radarBlock").innerHTML = "<p style='color:red'>❌ 無法載入 radar_${top}_user.html</p>");
-
-    let advKey = high.slice(0, 3).join("_") || high.slice(0, 2).join("_");
-    fetch(`strength_${advKey}_high_user.html`)
-      .then(res => res.ok ? res.text() : Promise.reject())
-      .then(html => document.getElementById("advBlock").innerHTML = html)
-      .catch(() => document.getElementById("advBlock").innerHTML = "<p style='color:red'>❌ 無法載入 strength_${advKey}_high_user.html</p>");
-
+    const dimensionMap = {"團隊展現":[0],"自我認知":[1],"執行能力":[2],"創意展現":[3],"工作風格":[4]};
+    const dimensionKeyMap = {"團隊展現":"team","自我認知":"awareness","執行能力":"execution","創意展現":"creativity","工作風格":"workstyle"};
+    const avg = {}; Object.keys(dimensionMap).forEach(k=>avg[k]=2.5);
+    const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v])=>[dimensionKeyMap[k],v]));
+    const sorted = Object.entries(avgKey).sort((a,b)=>b[1]-a[1]);
+    const top = sorted[0][0]; const high = sorted.filter(([_,v])=>v>=2.6).map(([k])=>k);
+    const advKey = high.slice(0,3).sort().join("_")||high.slice(0,2).sort().join("_");
+    function fetchInject(id,path){fetch(path).then(r=>r.ok?r.text():Promise.reject()).then(t=>document.getElementById(id).innerHTML=t).catch(()=>document.getElementById(id).innerHTML=`❌ 無法載入 ${path}`);}
+    fetchInject("personaBlock",`persona_${top}_user.html`);
+    fetchInject("advBlock",`strength_${advKey}_high_user.html`);
+    fetchInject("radarBlock",`radar_${top}_user.html`);
     const riskDiv = document.getElementById("riskBlock");
-    low.forEach(k => {
-  const riskKey = `risk_${k}_low_user.html`;
-      const div = document.createElement("div");
-      riskDiv.appendChild(div);
-      fetch(riskKey).then(res => {
-      if (!res.ok) throw new Error();
-      return res.text();
-    })
-        .then(res => res.text())
-        .then(html => div.innerHTML = html).catch(() => div.innerHTML = '<p style=\'color:red\'>❌ 無法載入 risk 模組</p>')
-        .catch(() => div.innerText = `（未能載入 risk_${k}_low_user.html）`);
-    });
+    high.forEach(k=>{const d=document.createElement("div");riskDiv.appendChild(d);fetch(`risk_${k}_low_user.html`).then(r=>{if(!r.ok)throw new Error();return r.text();}).then(h=>d.innerHTML=h).catch(()=>d.innerHTML=`❌ 無法載入 risk_${k}_low_user.html`);});
   </script>
 </body>
 </html>

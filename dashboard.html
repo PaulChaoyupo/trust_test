@@ -2,188 +2,19 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard｜測驗分析後台</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'Noto Sans TC', sans-serif;
-      margin: auto;
-      background: #f1f3f5;
-      padding: 1.5rem;
-      max-width: 1024px;
-      color: #333;
-    }
-    h2, h3 { color: #1d3557; }
-    section {
-      background: #fff;
-      border-radius: 8px;
-      padding: 1rem 1.5rem;
-      margin: 1.5rem 0;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-    }
-    select {
-      width: 100%;
-      padding: 0.6rem;
-      margin-bottom: 1rem;
-      font-size: 1rem;
-      border-radius: 6px;
-    }
-    canvas { max-width: 100%; }
-    @media (max-width: 600px) {
-      h2 { font-size: 1.25rem; }
-      section { padding: 1rem; }
-    }
-  </style>
+  <meta charset="UTF-8">
+  <title>Dashboard 資料管理工具</title>
 </head>
 <body>
-  <h2>受測者分析後台｜Dashboard</h2>
-
-  <section>
-    <label for="dateSelector">選擇測驗日期：</label>
-    <select id="dateSelector"></select>
-    <label for="userSelector">選擇受測者姓名：</label>
-    <select id="userSelector" disabled></select>
-  </section>
-
-  <div id="analysisArea" style="display:none">
-    <section><h3>📊 五構面雷達圖</h3><canvas id="radarChart" height="300"></canvas></section>
-    <section><h3>📘 雷達圖整體解說</h3><div id="radarBlock">-</div></section>
-    <section><h3>🔍 主導構面模擬敘述</h3><div id="personaBlock">-</div></section>
-    <section><h3>🌟 高分組合優勢說明</h3><div id="advBlock">-</div></section>
-    <section><h3>⚠️ 低分構面風險建議</h3><div id="riskBlock">-</div></section>
-    <section><h3>🧠 自覺程度分析</h3><div id="awarenessBlock">-</div></section>
-  </div>
-
+  <h2>後台分析頁 + 資料管理工具</h2>
+  <button onclick="exportData()">📥 匯出測驗資料</button>
+  <button onclick="clearData()">♻️ 清除測驗資料</button>
+  <input type="file" id="importFile" />
+  <button onclick="importData()">🔄 還原資料</button>
   <script>
-    const dimensionMap = {
-      "團隊展現": [0, 1, 32],
-      "自我認知": [2, 6, 8, 9, 10, 11, 26, 27, 28, 29, 30, 32, 34],
-      "執行能力": [4, 5, 19, 20, 21],
-      "創意展現": [12, 13, 14, 17, 18],
-      "工作風格": [3, 7, 15, 16, 31, 33]
-    };
-
-    function calcAvg(scores) {
-      const result = {};
-      for (const [key, idxs] of Object.entries(dimensionMap)) {
-        result[key] = parseFloat((idxs.reduce((sum, i) => sum + scores[i], 0) / idxs.length).toFixed(2));
-      }
-      return result;
-    }
-
-    function drawRadar(avg) {
-      new Chart(document.getElementById("radarChart"), {
-        type: "radar",
-        data: {
-          labels: Object.keys(avg),
-          datasets: [{
-            label: "五構面分數",
-            data: Object.values(avg),
-            backgroundColor: "rgba(33,111,163,0.2)",
-            borderColor: "#2170a3",
-            pointBackgroundColor: "#2170a3"
-          }]
-        },
-        options: {
-          scales: { r: { min: 1, max: 3, ticks: { stepSize: 0.5 } } },
-          plugins: { legend: { display: false } }
-        }
-      });
-    }
-
-    async function loadText(id, path) {
-      try {
-        const html = await fetch(path).then(res => res.text());
-        document.getElementById(id).innerHTML = html;
-      } catch {
-        document.getElementById(id).innerText = `找不到 ${path}`;
-      }
-    }
-
-    const dataset = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
-    const dateSel = document.getElementById("dateSelector");
-    const nameSel = document.getElementById("userSelector");
-
-    const dates = [...new Set(dataset.map(d => d.date))];
-    dates.forEach(d => {
-      const opt = document.createElement("option");
-      opt.value = d; opt.text = d;
-      dateSel.appendChild(opt);
-    });
-
-    dateSel.onchange = () => {
-      nameSel.innerHTML = "<option value=''>請選擇</option>";
-      nameSel.disabled = false;
-      const filtered = dataset.filter(d => d.date === dateSel.value);
-      filtered.forEach((d, i) => {
-        const opt = document.createElement("option");
-        opt.value = i;
-        opt.text = d.name;
-        nameSel.appendChild(opt);
-      });
-
-      nameSel.onchange = () => {
-        const entry = filtered[nameSel.value];
-        if (!entry) return;
-        const avg = calcAvg(entry.scores);
-        
-        const dimensionKeyMap = {
-          "團隊展現": "team",
-          "自我認知": "awareness",
-          "執行能力": "execution",
-          "創意展現": "creativity",
-          "工作風格": "workstyle"
-        };
-        const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
-        const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
-        const top = sorted[0][0];
-        const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
-        const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
-
-        const top = sorted[0][0];
-        const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
-        const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
-
-        document.getElementById("analysisArea").style.display = "block";
-        drawRadar(avg);
-        loadText("radarBlock", `radar_${top}.html`);
-        loadText("personaBlock", `persona_${top}.html`).catch(() => document.getElementById("personaBlock").innerHTML = "❌ 無法載入主導構面敘述");
-
-        const advKey = high.slice(0, 3).join("_") || high.slice(0, 2).join("_");
-        loadText("advBlock", `strength_${advKey}_high.html`).catch(() => document.getElementById("advBlock").innerHTML = "❌ 無法載入優勢組合說明");
-
-        const riskDiv = document.getElementById("riskBlock");
-        riskDiv.innerHTML = "";
-        low.forEach(k => {
-  const riskKey = `risk_${k}_low.html`;
-          const div = document.createElement("div");
-          riskDiv.appendChild(div);
-          fetch(riskKey)
-            .then(res => res.text())
-            .then(html => div.innerHTML = html).catch(() => div.innerHTML = '<p style=\'color:red\'>❌ 無法載入 risk 模組</p>')
-            .catch(() => div.innerText = `找不到風險 risk_${k}_low.html`);
-        });
-
-        const selfQ = [2, 6, 27, 30, 32, 33, 34];
-        const rev = [0, 1]; // 模擬反喆題位置
-        const likert = selfQ.map(i => entry.scores[i]);
-        const revSum = rev.map(i => entry.scores[i]).reduce((a, b) => a + b, 0);
-        const avgLikert = likert.reduce((a, b) => a + b, 0) / likert.length;
-
-        let bias = "";
-        if (avgLikert >= 2.6 && revSum <= 3) {
-          bias = "⚠️ 高自評但反喆矛盾，可能出現高估傾向";
-        } else if (avgLikert <= 1.5 && revSum >= 5) {
-          bias = "⚠️ 低自評但反喆合理，可能過度壓抑";
-        } else {
-          bias = "✅ 自評與內在一致性良好";
-        }
-        document.getElementById("awarenessBlock").innerText = bias;
-      };
-    };
+  function exportData(){const d=localStorage.getItem("trust_test_dataset")||"[]";const b=new Blob([d],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='trust_test_dataset.json';document.body.appendChild(l);l.click();}
+  function clearData(){localStorage.removeItem("trust_test_dataset");localStorage.removeItem("trust_test_result");alert("✅ 已清除所有測驗資料");location.reload();}
+  function importData(){const f=document.getElementById('importFile').files[0];if(!f)return alert("請選擇 JSON 檔案");const r=new FileReader();r.onload=e=>{try{const j=JSON.parse(e.target.result);if(!Array.isArray(j))throw new Error();localStorage.setItem("trust_test_dataset",JSON.stringify(j));alert("✅ 資料還原成功");location.reload();}catch{alert("❌ 讀取或格式錯誤");}};r.readAsText(f);}
   </script>
 </body>
 </html>
