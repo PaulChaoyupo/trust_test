@@ -81,7 +81,7 @@ low.forEach(k=>{const d=document.createElement("div");document.getElementById("r
 const riskKey=`risk_${k}_low.html`;
 fetch(riskKey).then(r=>{if(!r.ok)throw new Error();return r.text();}).then(h=>d.innerHTML=h).catch(()=>d.innerHTML=`❌ 無法載入 ${riskKey}`);
 });
-const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum, i) => sum + res.scores[i], 0) / 13;
+const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum, i) => sum + e.scores[i], 0) / 13;
 const awarenessLevel = awarenessAvg < 2.1 ? 'low' : awarenessAvg >= 2.6 ? 'high' : 'normal';
 loadText("awarenessBlock", `awareness_${awarenessLevel}.html`);
 };
