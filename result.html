@@ -10,7 +10,7 @@
 <body>
   <h2>你的測驗結果分析</h2>
   <p id="basicInfo">姓名 / 日期</p>
-  <canvas id="radarChart" height="320"></canvas>
+  <canvas id="radarChart" width="250" height="250"></canvas>
   <div id="personaBlock">主導構面敘述載入中...</div>
   <div id="advBlock">優勢組合說明載入中...</div>
   <div id="riskBlock">低分構面風險建議載入中...</div>
@@ -50,7 +50,22 @@
       new Chart(document.getElementById("radarChart"), {
         type: 'radar',
         data: { labels: Object.keys(avg), datasets: [{ label: '構面分數', data: Object.values(avgKey), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
-        options: { scales: { r: { min:1, max:3, ticks:{ stepSize:0.5 } } }, plugins:{ legend:{ display:false } } }
+        options: { 
+  scales: { 
+    r: { 
+      min:1, 
+      max:3, 
+      ticks:{ 
+        stepSize:0.5,
+        font: { size: 14 }   
+      },
+      pointLabels: {
+        font: { size: 16 }    
+      }
+    } 
+  }, 
+  plugins:{ legend:{ display:false } } 
+}
       });
 
       function fetchInject(id,path){
