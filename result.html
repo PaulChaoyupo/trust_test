@@ -65,6 +65,7 @@
       fetchInject("radarBlock", `radar_${top}_user.html`);
 
       const riskDiv = document.getElementById("riskBlock");
+      riskDiv.innerHTML = '';
  low.forEach(k=>{
   if (k) {
     const div = document.createElement("div");
