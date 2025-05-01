@@ -3,18 +3,93 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard 資料管理工具</title>
+  <title>Dashboard 資料管理工具 + 分析</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <h2>後台分析頁 + 資料管理工具</h2>
-  <button onclick="exportData()">📥 匯出測驗資料</button>
-  <button onclick="clearData()">♻️ 清除測驗資料</button>
-  <input type="file" id="importFile" />
-  <button onclick="importData()">🔄 還原資料</button>
-  <script>
-  function exportData(){const d=localStorage.getItem("trust_test_dataset")||"[]";const b=new Blob([d],{type:'application/json'});const l=document.createElement('a');l.href=URL.createObjectURL(b);l.download='trust_test_dataset.json';document.body.appendChild(l);l.click();}
-  function clearData(){localStorage.removeItem("trust_test_dataset");localStorage.removeItem("trust_test_result");alert("✅ 已清除所有測驗資料");location.reload();}
-  function importData(){const f=document.getElementById('importFile').files[0];if(!f)return alert("請選擇 JSON 檔案");const r=new FileReader();r.onload=e=>{try{const j=JSON.parse(e.target.result);if(!Array.isArray(j))throw new Error();localStorage.setItem("trust_test_dataset",JSON.stringify(j));alert("✅ 資料還原成功");location.reload();}catch{alert("❌ 讀取或格式錯誤");}};r.readAsText(f);}
-  </script>
+  <section>
+    <button onclick="exportData()">📥 匯出測驗資料</button>
+    <button onclick="clearData()">♻️ 清除測驗資料</button>
+    <input type="file" id="importFile" />
+    <button onclick="importData()">🔄 還原資料</button>
+  </section>
+  <section>
+    <label for="dateSelector">選擇測驗日期：</label>
+    <select id="dateSelector"></select>
+    <label for="userSelector">選擇受測者姓名：</label>
+    <select id="userSelector" disabled></select>
+  </section>
+  <section><canvas id="radarChart" height="300"></canvas></section>
+  <section><div id="personaBlock"></div></section>
+  <section><div id="advBlock"></div></section>
+  <section><div id="riskBlock"></div></section>
+  <section><div id="awarenessBlock"></div></section>
+<script>
+function exportData(){
+  const d=localStorage.getItem("trust_test_dataset")||"[]";
+  const b=new Blob([d],{type:'application/json'});
+  const l=document.createElement('a');
+  l.href=URL.createObjectURL(b);
+  l.download='trust_test_dataset.json';
+  document.body.appendChild(l);
+  l.click();
+}
+function clearData(){
+  localStorage.removeItem("trust_test_dataset");
+  localStorage.removeItem("trust_test_result");
+  alert("✅ 已清除所有測驗資料");
+  location.reload();
+}
+function importData(){
+  const f=document.getElementById('importFile').files[0];
+  if(!f)return alert("請選擇 JSON 檔案");
+  const r=new FileReader();
+  r.onload=e=>{try{const j=JSON.parse(e.target.result);
+  if(!Array.isArray(j))throw new Error();
+  localStorage.setItem("trust_test_dataset",JSON.stringify(j));
+  alert("✅ 資料還原成功");location.reload();}
+  catch{alert("❌ 讀取或格式錯誤");}};
+  r.readAsText(f);
+}
+
+const ds=JSON.parse(localStorage.getItem("trust_test_dataset")||"[]");
+const dateSel=document.getElementById("dateSelector");
+const userSel=document.getElementById("userSelector");
+const dates=[...new Set(ds.map(d=>d.date))];
+dates.forEach(d=>{const o=document.createElement("option");o.value=o.text=d;dateSel.appendChild(o);});
+dateSel.onchange=()=>{
+  userSel.innerHTML="<option value=''>請選擇</option>";userSel.disabled=false;
+  const f=ds.filter(d=>d.date===dateSel.value);
+  f.forEach((d,i)=>{const o=document.createElement("option");o.value=i;o.text=d.name;userSel.appendChild(o);});
+  userSel.onchange=()=>{
+    const e=f[userSel.value];
+    if(!e)return;
+    const dimMap={"團隊展現":[0,1,32],"自我認知":[2,6,8,9,10,11,26,27,28,29,30,32,34],"執行能力":[4,5,19,20,21],"創意展現":[12,13,14,17,18],"工作風格":[3,7,15,16,31,33]};
+    const dimKeyMap={"團隊展現":"team","自我認知":"awareness","執行能力":"execution","創意展現":"creativity","工作風格":"workstyle"};
+    const avg={};
+    for(const[k,i]of Object.entries(dimMap)){avg[k]=i.reduce((s,n)=>s+e.scores[n],0)/i.length;}
+    const avgKey=Object.fromEntries(Object.entries(avg).map(([k,v])=>[dimKeyMap[k],v]));
+    const sorted=Object.entries(avgKey).sort((a,b)=>b[1]-a[1]);
+    const top=sorted[0][0];
+    const high=sorted.filter(([_,v])=>v>=2.6).map(([k])=>k);
+    const low=sorted.filter(([_,v])=>v<2.1).map(([k])=>k);
+    const advKey=high.slice(0,3).sort().join("_")||high.slice(0,2).sort().join("_");
+
+    new Chart(document.getElementById("radarChart"),{type:'radar',data:{labels:Object.keys(avgKey),datasets:[{label:'構面分數',data:Object.values(avgKey),backgroundColor:'rgba(33,111,163,0.2)',borderColor:'#2170a3',pointBackgroundColor:'#2170a3'}]},options:{scales:{r:{min:1,max:3,ticks:{stepSize:0.5}}},plugins:{legend:{display:false}}}});
+
+    function loadText(id,path){fetch(path).then(r=>r.ok?r.text():Promise.reject()).then(t=>document.getElementById(id).innerHTML=t).catch(()=>document.getElementById(id).innerHTML=`❌ 無法載入 ${path}`);}
+    loadText("personaBlock",`persona_${top}.html`);
+    loadText("advBlock",`strength_${advKey}_high.html`);
+    loadText("riskBlock","");
+    const riskDiv=document.getElementById("riskBlock");
+    low.forEach(k=>{const d=document.createElement("div");riskDiv.appendChild(d);
+      const riskKey=`risk_${k}_low.html`;
+      fetch(riskKey).then(r=>{if(!r.ok)throw new Error();return r.text();}).then(h=>d.innerHTML=h).catch(()=>d.innerHTML=`❌ 無法載入 ${riskKey}`);
+    });
+    document.getElementById("awarenessBlock").innerText="🧠 自覺程度分析開發中";
+  };
+};
+</script>
 </body>
 </html>
