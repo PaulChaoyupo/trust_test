@@ -47,7 +47,7 @@
 
       new Chart(document.getElementById("radarChart"), {
         type: 'radar',
-        data: { labels: Object.keys(avgKey), datasets: [{ label: '構面分數', data: Object.values(avgKey), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
+        data: { labels: Object.keys(avg), datasets: [{ label: '構面分數', data: Object.values(avgKey), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
         options: { scales: { r: { min:1, max:3, ticks:{ stepSize:0.5 } } }, plugins:{ legend:{ display:false } } }
       });
 
