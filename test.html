@@ -128,6 +128,14 @@
       }
 
       const result = { name, date, scores };
+      const result = { name, date, scores };
+fetch('https://script.google.com/macros/s/AKfycbxjMY6jY0AUQg1zzOAZG6NZrZL-t91qdlu9C3YAJWNp4Ci51A80V7WdSOh9I7YvFok7/exec', {
+  method: 'POST',
+  body: JSON.stringify(result)
+})
+.then(response => console.log("✅ 已送出到 Google Sheets"))
+.catch(error => console.error("❌ Google Sheets 送出失敗", error));
+
       const all = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
       all.push(result);
       localStorage.setItem("trust_test_dataset", JSON.stringify(all));
