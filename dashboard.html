@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -16,7 +15,7 @@
   </section>
   <section>
     <label for="dateSelector">選擇測驗日期：</label>
-    <select id="dateSelector"></select>
+    <input type="date" id="dateSelector" />
     <label for="userSelector">選擇受測者姓名：</label>
     <select id="userSelector" disabled></select>
   </section>
@@ -26,6 +25,7 @@
   <section><div id="riskBlock">低分風險分析</div></section>
   <section><div id="awarenessBlock">自覺程度分析</div></section>
 <script>
+let radarChart;
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
 
@@ -37,31 +37,34 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
 })
 .then(response => response.json())
 .then(data => {
-  const dateSel = document.getElementById("dateSelector");
-  const userSel = document.getElementById("userSelector");
-  const dates = [...new Set(data.map(d => d.date))];
-  
-  dates.forEach(d => {
-    const o = document.createElement("option");
-    o.value = o.text = d;
-    dateSel.appendChild(o);
-  });
+  const dateInput = document.getElementById("dateSelector");
 
-  dateSel.onchange = () => {
-    userSel.innerHTML = "<option value=''>請選擇</option>";
-    userSel.disabled = false;
-    const f = data.filter(d => d.date === dateSel.value);
-    f.forEach((d, i) => {
+  dateInput.addEventListener('change', () => {
+    const selectedDate = dateInput.value;
+    const oldUserSel = document.getElementById("userSelector");
+    const newUserSel = oldUserSel.cloneNode(true);
+    oldUserSel.parentNode.replaceChild(newUserSel, oldUserSel);
+    newUserSel.innerHTML = "<option value=''>請選擇</option>";
+    newUserSel.disabled = false;
+
+    const filtered = data.filter(d => d.date.substring(0,10) === selectedDate);
+    filtered.forEach((d, i) => {
       const o = document.createElement("option");
       o.value = i;
       o.text = d.name;
-      userSel.appendChild(o);
+      newUserSel.appendChild(o);
     });
 
-    userSel.onchange = () => {
-      const e = f[userSel.value];
+    newUserSel.addEventListener('change', () => {
+      const e = filtered[newUserSel.value];
       if (!e) return;
-      e.scores = typeof e.scores === 'string' ? JSON.parse(e.scores) : e.scores;
+
+      try {
+        e.scores = typeof e.scores === 'string' ? JSON.parse(e.scores) : e.scores;
+      } catch {
+        console.error("❌ scores JSON 解析失敗", e.scores);
+        return;
+      }
 
       const dimMap = {
         "團隊展現": [0,1,32],
@@ -88,7 +91,8 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
       const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
       const advKey = high.length ? high.slice(0,3).sort().join("_") : top;
 
-      new Chart(document.getElementById("radarChart"), {
+      if (radarChart) radarChart.destroy();
+      radarChart = new Chart(document.getElementById("radarChart"), {
         type: 'radar',
         data: { labels: Object.keys(avg), datasets: [{ label: '構面分數', data: Object.values(avgKey), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
         options: {
@@ -105,7 +109,7 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
       }
       loadText("personaBlock", `persona_${top}.html`);
       loadText("advBlock", `strength_${advKey}_high.html`);
-      
+
       const riskDiv = document.getElementById("riskBlock");
       riskDiv.innerHTML = '';
       const lowLimited = sorted.slice(-2).map(([k]) => k);
@@ -122,8 +126,8 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
       const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum, i) => sum + e.scores[i], 0) / 13;
       const awarenessLevel = awarenessAvg < 2.1 ? 'low' : awarenessAvg >= 2.6 ? 'high' : 'balanced';
       loadText("awarenessBlock", `awareness_${awarenessLevel}.html`);
-    };
-  };
+    });
+  });
 })
 .catch(err => console.error("❌ 讀取 Supabase 資料失敗", err));
 </script>
