@@ -85,6 +85,8 @@
   <button onclick="submitTest()">送出測驗</button>
 
   <script>
+    const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
+const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
     window.addEventListener("DOMContentLoaded", () => {
       try {
         if (!Array.isArray(questions)) {
@@ -128,18 +130,26 @@
       }
       const result = { name, date, scores };
 
-fetch('https://script.google.com/macros/s/AKfycbzyjn9ZYv7rEcEHDkEtn9ksJlMqTFIcAjyXUnaNbAtVJoMFpmgMnRmGfY02-UxGkLdhkg/exec', {
+fetch(`${SUPABASE_URL}/rest/v1/results`, {
   method: 'POST',
-  body: JSON.stringify(result)
+  headers: {
+    'apikey': SUPABASE_API_KEY,
+    'Authorization': `Bearer ${SUPABASE_API_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+  },
+  body: JSON.stringify({
+    name: name,
+    date: date,
+    scores: scores
+  })
 })
-.then(response => console.log("✅ 已送出到 Google Sheets"))
-.catch(error => console.error("❌ Google Sheets 送出失敗", error));
-
-      const all = JSON.parse(localStorage.getItem("trust_test_dataset") || "[]");
-      all.push(result);
-      localStorage.setItem("trust_test_dataset", JSON.stringify(all));
-      localStorage.setItem("trust_test_result", JSON.stringify(result));
-      location.href = "result.html";
+.then(response => response.json())
+.then(data => {
+  console.log("✅ 已送出到 Supabase", data);
+  location.href = "result.html?name=" + encodeURIComponent(name);
+})
+.catch(error => console.error("❌ Supabase 送出失敗", error));
     }
   </script>
 </body>
