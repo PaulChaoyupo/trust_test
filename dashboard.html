@@ -25,74 +25,107 @@
   <section><div id="advBlock">優勢組合分析</div></section>
   <section><div id="riskBlock">低分風險分析</div></section>
   <section><div id="awarenessBlock">自覺程度分析</div></section>
-
 <script>
-function exportData(){const d=localStorage.getItem("trust_test_dataset")||"[]";
-const b=new Blob([d],{type:'application/json'});
-const l=document.createElement('a');
-l.href=URL.createObjectURL(b);
-l.download='trust_test_dataset.json';
-document.body.appendChild(l);l.click();}
+const SUPABASE_URL = 'https://你的supabase專案ID.supabase.co';
+const SUPABASE_API_KEY = '你的 anon 公開金鑰';
 
-function clearData(){localStorage.removeItem("trust_test_dataset");
-localStorage.removeItem("trust_test_result");
-alert("✅ 已清除所有資料");location.reload();}
+fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
+  headers: {
+    'apikey': SUPABASE_API_KEY,
+    'Authorization': `Bearer ${SUPABASE_API_KEY}`
+  }
+})
+.then(response => response.json())
+.then(data => {
+  const dateSel = document.getElementById("dateSelector");
+  const userSel = document.getElementById("userSelector");
+  const dates = [...new Set(data.map(d => d.date))];
+  
+  dates.forEach(d => {
+    const o = document.createElement("option");
+    o.value = o.text = d;
+    dateSel.appendChild(o);
+  });
 
-function importData(){const f=document.getElementById('importFile').files[0];
-if(!f)return alert("請選擇 JSON 檔案");
-const r=new FileReader();
-r.onload=e=>{try{const j=JSON.parse(e.target.result);
-if(!Array.isArray(j))throw new Error();
-localStorage.setItem("trust_test_dataset",JSON.stringify(j));
-alert("✅ 還原成功");location.reload();}
-catch{alert("❌ 格式錯誤");}};
-r.readAsText(f);}
+  dateSel.onchange = () => {
+    userSel.innerHTML = "<option value=''>請選擇</option>";
+    userSel.disabled = false;
+    const f = data.filter(d => d.date === dateSel.value);
+    f.forEach((d, i) => {
+      const o = document.createElement("option");
+      o.value = i;
+      o.text = d.name;
+      userSel.appendChild(o);
+    });
 
-const ds=JSON.parse(localStorage.getItem("trust_test_dataset")||"[]");
-const dateSel=document.getElementById("dateSelector");
-const userSel=document.getElementById("userSelector");
-const dates=[...new Set(ds.map(d=>d.date))];
-dates.forEach(d=>{const o=document.createElement("option");
-o.value=o.text=d;dateSel.appendChild(o);});
+    userSel.onchange = () => {
+      const e = f[userSel.value];
+      if (!e) return;
+      e.scores = typeof e.scores === 'string' ? JSON.parse(e.scores) : e.scores;
 
-dateSel.onchange=()=>{userSel.innerHTML="<option value=''>請選擇</option>";
-userSel.disabled=false;const f=ds.filter(d=>d.date===dateSel.value);
-f.forEach((d,i)=>{const o=document.createElement("option");
-o.value=i;o.text=d.name;userSel.appendChild(o);});
+      const dimMap = {
+        "團隊展現": [0,1,32],
+        "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
+        "執行能力": [4,5,19,20,21],
+        "創意展現": [12,13,14,17,18],
+        "工作風格": [3,7,15,16,31,33]
+      };
+      const dimKeyMap = {
+        "團隊展現": "team",
+        "自我認知": "awareness",
+        "執行能力": "execution",
+        "創意展現": "creativity",
+        "工作風格": "workstyle"
+      };
+      const avg = {};
+      for (const [k, i] of Object.entries(dimMap)) {
+        avg[k] = i.reduce((s, n) => s + e.scores[n], 0) / i.length;
+      }
+      const avgKey = Object.fromEntries(Object.entries(avg).map(([k, v]) => [dimKeyMap[k], v]));
+      const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
+      const top = sorted[0][0];
+      const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+      const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
+      const advKey = high.length ? high.slice(0,3).sort().join("_") : top;
 
-userSel.onchange=()=>{const e=f[userSel.value];if(!e)return;
-const dimMap={"團隊展現":[0,1,32],"自我認知":[2,6,8,9,10,11,26,27,28,29,30,32,34],"執行能力":[4,5,19,20,21],"創意展現":[12,13,14,17,18],"工作風格":[3,7,15,16,31,33]};
-const dimKeyMap={"團隊展現":"team","自我認知":"awareness","執行能力":"execution","創意展現":"creativity","工作風格":"workstyle"};
-const avg={};for(const[k,i]of Object.entries(dimMap)){avg[k]=i.reduce((s,n)=>s+e.scores[n],0)/i.length;}
-const avgKey=Object.fromEntries(Object.entries(avg).map(([k,v])=>[dimKeyMap[k],v]));
-const sorted=Object.entries(avgKey).sort((a,b)=>b[1]-a[1]);
-const top=sorted[0][0];
-const high=sorted.filter(([_,v])=>v>=2.6).map(([k])=>k);
-const low=sorted.filter(([_,v])=>v<2.1).map(([k])=>k);
-const highKeys = high.map(k => dimKeyMap[k]);const advKey = high.length ? highKeys.slice(0,3).sort().join("_") : top;
+      new Chart(document.getElementById("radarChart"), {
+        type: 'radar',
+        data: { labels: Object.keys(avg), datasets: [{ label: '構面分數', data: Object.values(avgKey), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
+        options: {
+          scales: { r: { min: 1, max: 3, ticks: { stepSize: 0.5 } } },
+          plugins: { legend: { display: false } }
+        }
+      });
 
-new Chart(document.getElementById("radarChart"),{type:'radar',data:{labels:Object.keys(avg),datasets:[{label:'構面分數',data:Object.values(avgKey),backgroundColor:'rgba(33,111,163,0.2)',borderColor:'#2170a3',pointBackgroundColor:'#2170a3'}]},options:{scales:{r:{min:1,max:3,ticks:{stepSize:0.5}}},plugins:{legend:{display:false}}}});
+      function loadText(id, path) {
+        fetch(path)
+          .then(r => r.ok ? r.text() : Promise.reject())
+          .then(t => document.getElementById(id).innerHTML = t)
+          .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`);
+      }
+      loadText("personaBlock", `persona_${top}.html`);
+      loadText("advBlock", `strength_${advKey}_high.html`);
+      
+      const riskDiv = document.getElementById("riskBlock");
+      riskDiv.innerHTML = '';
+      const lowLimited = sorted.slice(-2).map(([k]) => k);
+      lowLimited.forEach(k => {
+        const d = document.createElement("div");
+        riskDiv.appendChild(d);
+        const riskKey = `risk_${k}_low.html`;
+        fetch(riskKey)
+          .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+          .then(h => d.innerHTML = h)
+          .catch(() => d.innerHTML = `❌ 無法載入 ${riskKey}`);
+      });
 
-function loadText(id,path){fetch(path).then(r=>r.ok?r.text():Promise.reject()).then(t=>document.getElementById(id).innerHTML=t).catch(()=>document.getElementById(id).innerHTML=`❌ 無法載入 ${path}`);}
-loadText("personaBlock",`persona_${top}.html`);
-loadText("advBlock",`strength_${advKey}_high.html`);
-document.getElementById("riskBlock").innerHTML="";
-const lowLimited = sorted.slice(-2).map(([k]) => k);
-document.getElementById("riskBlock").innerHTML = "";
-lowLimited.forEach(k => {
-const d = document.createElement("div");
-document.getElementById("riskBlock").appendChild(d);
-const riskKey = `risk_${k}_low.html`;
-fetch(riskKey)
-.then(r => { if (!r.ok) throw new Error(); return r.text(); })
-.then(h => d.innerHTML = h)
-.catch(() => d.innerHTML = `❌ 無法載入 ${riskKey}`);
-});
-const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum, i) => sum + e.scores[i], 0) / 13;
-const awarenessLevel = awarenessAvg < 2.1 ? 'low' : awarenessAvg >= 2.6 ? 'high' : 'balanced';
-loadText("awarenessBlock", `awareness_${awarenessLevel}.html`);
-};
-};
+      const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum, i) => sum + e.scores[i], 0) / 13;
+      const awarenessLevel = awarenessAvg < 2.1 ? 'low' : awarenessAvg >= 2.6 ? 'high' : 'balanced';
+      loadText("awarenessBlock", `awareness_${awarenessLevel}.html`);
+    };
+  };
+})
+.catch(err => console.error("❌ 讀取 Supabase 資料失敗", err));
 </script>
 </body>
 </html>
