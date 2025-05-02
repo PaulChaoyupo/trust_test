@@ -144,11 +144,16 @@ fetch(`${SUPABASE_URL}/rest/v1/results`, {
     scores: scores
   })
 })
-.then(response => response.json())
-.then(data => {
-  console.log("✅ 已送出到 Supabase", data);
-  location.href = "result.html?name=" + encodeURIComponent(name);
-})
+.then(response => response.json()
+  .then(data => {
+    console.log("✅ Supabase 回應內容", data);
+    if (data.error) {
+      console.error("❌ Supabase 錯誤", data.error);
+    } else {
+      location.href = "result.html?name=" + encodeURIComponent(name);
+    }
+  })
+)
 .catch(error => console.error("❌ Supabase 送出失敗", error));
     }
   </script>
