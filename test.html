@@ -117,45 +117,52 @@ const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
       if (next) next.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-    function submitTest() {
-      const name = document.getElementById("userName").value.trim();
-      const date = document.getElementById("testDate").value;
-      if (!name || !date) return alert("請填寫姓名與日期");
+function submitTest() {
+  const name = document.getElementById("userName").value.trim();
+  const date = document.getElementById("testDate").value;
+  if (!name || !date) return alert("請填寫姓名與日期");
 
-      const scores = [];
-      for (let i = 0; i < questions.length; i++) {
-        const val = document.querySelector("input[name='q" + i + "']:checked");
-        if (!val) return alert("第 " + (i + 1) + " 題尚未作答");
-        scores.push(parseInt(val.value));
-      }
-      const result = { name, date, scores };
+  const scores = [];
+  for (let i = 0; i < questions.length; i++) {
+    const val = document.querySelector("input[name='q" + i + "']:checked");
+    if (!val) return alert("第 " + (i + 1) + " 題尚未作答");
+    scores.push(parseInt(val.value));
+  }
 
-fetch(`${SUPABASE_URL}/rest/v1/results`, {
-  method: 'POST',
-  headers: {
-    'apikey': SUPABASE_API_KEY,
-    'Authorization': `Bearer ${SUPABASE_API_KEY}`,
-    'Content-Type': 'application/json',
-    'Prefer': 'return=representation'
-  },
-  body: JSON.stringify({
+  const payload = {
     name: name,
     date: date,
     scores: scores
+  };
+
+  fetch(`${SUPABASE_URL}/rest/v1/results`, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_API_KEY,
+      'Authorization': `Bearer ${SUPABASE_API_KEY}`,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(payload)
   })
-})
-.then(response => response.json()
-  .then(data => {
-    console.log("✅ Supabase 回應內容", data);
-    if (data.error) {
-      console.error("❌ Supabase 錯誤", data.error);
-    } else {
+    .then(async response => {
+      const data = await response.json();
+      console.log("✅ Supabase 回傳狀態碼:", response.status);
+      console.log("✅ Supabase 回傳內容:", data);
+
+      if (!response.ok) {
+        alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
+        return;
+      }
+
+      alert("✅ 資料已成功送出 Supabase！");
       location.href = "result.html?name=" + encodeURIComponent(name);
-    }
-  })
-)
-.catch(error => console.error("❌ Supabase 送出失敗", error));
-    }
+    })
+    .catch(error => {
+      console.error("❌ Supabase 送出失敗", error);
+      alert("❌ Supabase 網路錯誤：" + error.message);
+    });
+}
   </script>
 </body>
 </html>
