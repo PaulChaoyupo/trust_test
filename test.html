@@ -126,8 +126,6 @@
         if (!val) return alert("第 " + (i + 1) + " 題尚未作答");
         scores.push(parseInt(val.value));
       }
-
-      const result = { name, date, scores };
       const result = { name, date, scores };
 fetch('https://script.google.com/macros/s/AKfycbxjMY6jY0AUQg1zzOAZG6NZrZL-t91qdlu9C3YAJWNp4Ci51A80V7WdSOh9I7YvFok7/exec', {
   method: 'POST',
