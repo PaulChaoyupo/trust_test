@@ -3,6 +3,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Talent Sketch 結果頁</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -12,62 +13,23 @@
   <!-- 導覽列 -->
   <nav class="bg-yellow-400 p-4 flex justify-between items-center shadow">
     <div class="text-xl font-bold text-gray-800">Talent Sketch 結果頁</div>
-    <button class="text-gray-700">返回首頁</button>
+    <button class="text-gray-700" onclick="window.location.href='index.html'">返回首頁</button>
   </nav>
 
   <main class="max-w-5xl mx-auto p-4">
-
-    <!-- 分析區塊 -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div id="personaBlock" class="bg-white rounded shadow p-4">主導構面分析</div>
       <div id="advBlock" class="bg-white rounded shadow p-4">優勢組合分析</div>
       <div id="riskBlock" class="bg-white rounded shadow p-4 md:col-span-2">低分風險分析</div>
       <div id="awarenessBlock" class="bg-white rounded shadow p-4 md:col-span-2">自覺程度分析</div>
     </section>
-    
+    <section class="bg-white rounded shadow p-4 mt-4">
+      <div class="relative w-full" style="height: 40vh; max-height: 350px;">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </section>
   </main>
 
-<script>
-function loadLowScores(avg, dimKeyMap) {
-  const riskDiv = document.getElementById("riskBlock");
-  riskDiv.innerHTML = '';
-
-  const importanceOrder = ["自我認知", "團隊展現", "執行能力", "創意展現", "工作風格"];
-  const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
-
-  // 先抓最低分前4個
-  const lowCandidates = entries.slice(0, 4).map(([k]) => k);
-
-  // 再依重要性排序，挑前2個
-  const sortedByImportance = importanceOrder.filter(k => lowCandidates.includes(k)).slice(0, 2);
-
-  console.log("⚠️ 最終選定的低分構面（依重要性）:", sortedByImportance);
-
-  sortedByImportance.forEach(k => {
-    const div = document.createElement("div");
-    div.className = "mb-4 p-3 bg-red-100 rounded shadow text-red-700"; // 美化樣式
-    riskDiv.appendChild(div);
-    const riskKey = `./risk_${dimKeyMap[k]}_low.html`;
-
-    console.log(`⚠️ 嘗試載入: ${riskKey}`);
-
-    fetch(riskKey)
-      .then(r => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.text();
-      })
-      .then(h => {
-        div.innerHTML = h;
-        console.log(`✅ 成功載入: ${riskKey}`);
-      })
-      .catch(err => {
-        div.innerHTML = `❌ 無法載入 ${riskKey} (${err.message})`;
-        console.error(`❌ 無法載入 ${riskKey}`, err);
-      });
-  });
-}
-</script>
-<script src="./result_logic.js"></script>
-
+  <script src="./result_logic.js"></script>
 </body>
 </html>
