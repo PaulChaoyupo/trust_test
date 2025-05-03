@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   const userId = getUserIdFromURL();
   const user = await fetchUserData(userId);
   if (user) {
+    console.log('✅ 讀到 Supabase 資料:', user);
     showUserData(user);
   } else {
     Swal.fire('找不到測驗資料', '', 'error');
@@ -26,7 +27,9 @@ async function fetchUserData(userId) {
     console.error('❌ Supabase 錯誤', error);
     return null;
   }
-  return Array.isArray(data) ? data[0] : data;
+  const user = Array.isArray(data) ? data[0] : data;
+  console.log('✅ fetchUserData 取得:', user);
+  return user;
 }
 
 function getUserIdFromURL() {
@@ -55,8 +58,9 @@ function showUserData(user) {
   if (typeof scores === 'string') {
     try {
       scores = JSON.parse(scores);
-    } catch {
-      console.error('❌ scores 格式錯誤');
+    } catch (err) {
+      console.error('❌ scores 格式錯誤', err);
+      Swal.fire('資料格式錯誤', '', 'error');
       return;
     }
   }
@@ -64,6 +68,8 @@ function showUserData(user) {
   const avg = Object.fromEntries(Object.entries(dimMap).map(([k, idx]) =>
     [k, idx.reduce((sum, i) => sum + scores[i], 0) / idx.length]
   ));
+
+  console.log('✅ 平均分數 avg:', avg);
 
   drawRadarChart(avg);
   const topKey = dimKeyMap[getTopKey(avg)];
@@ -76,7 +82,7 @@ function showUserData(user) {
 
 function drawRadarChart(avg) {
   if (radarChart) radarChart.destroy();
-  const percentData = Object.values(avg).map(v => Math.round((v - 1) / 2 * 100));
+  const percentData = Object.values(avg).map(v => Math.round((v -1)/2*100));
   radarChart = new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
@@ -118,11 +124,14 @@ function loadHTML(id, path) {
 function loadLowScores(avg, dimKeyMap) {
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
+
   const importanceOrder = ["自我認知", "團隊展現", "執行能力", "創意展現", "工作風格"];
   const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
   const lowCandidates = entries.filter(([_, v]) => v < 2.1).map(([k]) => k);
   const sortedByImportance = importanceOrder.filter(k => lowCandidates.includes(k)).slice(0, 2);
+
   console.log("⚠️ 最終選定的低分構面（依重要性）:", sortedByImportance);
+
   sortedByImportance.forEach(k => {
     const div = document.createElement("div");
     div.className = "mb-4 p-3 bg-red-100 rounded shadow text-red-700";
