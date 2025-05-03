@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -10,19 +9,37 @@
     html { scroll-behavior: smooth; }
     body {
       font-family: 'Noto Sans TC', sans-serif;
-      margin: auto;
-      background: #f2f4f8;
-      padding: 2rem;
+      background: #f9f9f9;
+      margin: 0 auto;
+      padding: 2rem 1rem;
       max-width: 960px;
       color: #333;
     }
     h2 {
       text-align: center;
       color: #1d3557;
+      margin-bottom: 1rem;
+      font-size: 2rem;
+    }
+    .progress-bar {
+      height: 8px;
+      background: #e0e0e0;
+      border-radius: 10px;
+      overflow: hidden;
       margin-bottom: 1.5rem;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 0;
+      background: linear-gradient(90deg, #a8dadc, #457b9d);
+      transition: width 0.3s ease;
     }
     .intro {
       margin-bottom: 2rem;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     }
     label {
       font-weight: 500;
@@ -32,29 +49,57 @@
     input[type="text"], input[type="date"] {
       width: 100%;
       padding: 0.6rem;
-      margin-bottom: 1.2rem;
+      margin-bottom: 1rem;
       border: 1px solid #ccc;
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 1rem;
     }
     .question {
       background: #fff;
-      padding: 1rem 1.2rem;
+      padding: 1.2rem;
       margin-bottom: 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 3px 10px rgba(0,0,0,0.06);
-      transition: opacity 0.5s ease;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      opacity: 1;
+      transition: opacity 0.4s ease, transform 0.3s ease;
     }
     .question.answered {
-      opacity: 0.4;
+      opacity: 0.5;
     }
     .question strong {
-      font-size: 1.05rem;
-      color: #222;
-    }
-    .question label {
-      margin: 0.3rem 0;
+      font-size: 1.1rem;
+      color: #1d3557;
       display: block;
+      margin-bottom: 0.6rem;
+    }
+    .likert {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 0.6rem;
+    }
+    .likert label {
+      flex: 1;
+      text-align: center;
+      margin: 0 0.2rem;
+    }
+    .likert input[type="radio"] {
+      display: none;
+    }
+    .likert span {
+      display: inline-block;
+      width: 36px;
+      height: 36px;
+      line-height: 36px;
+      background: #e0e0e0;
+      border-radius: 50%;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.3s, transform 0.2s;
+    }
+    .likert input[type="radio"]:checked + span {
+      background: #457b9d;
+      color: #fff;
+      transform: scale(1.1);
     }
     button {
       display: block;
@@ -64,9 +109,10 @@
       background-color: #457b9d;
       color: white;
       border: none;
-      border-radius: 10px;
+      border-radius: 12px;
       margin-top: 2rem;
       cursor: pointer;
+      transition: background 0.3s ease;
     }
     button:hover {
       background-color: #1d3557;
@@ -75,6 +121,7 @@
 </head>
 <body>
   <h2>自覺程度測驗</h2>
+  <div class="progress-bar"><div class="progress-bar-fill" id="progressFill"></div></div>
   <div class="intro">
     <label for="userName">請輸入您的姓名：</label>
     <input type="text" id="userName" placeholder="例如：王小明" />
@@ -86,83 +133,86 @@
 
   <script>
     const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
+    const SUPABASE_API_KEY = 'YOUR_API_KEY';
     window.addEventListener("DOMContentLoaded", () => {
       try {
-        if (!Array.isArray(questions)) {
-          throw new Error("questions 題庫未載入");
-        }
+        if (!Array.isArray(questions)) throw new Error("questions 題庫未載入");
 
         const form = document.getElementById("testForm");
-
         questions.forEach((q, i) => {
           const div = document.createElement("div");
           div.className = "question";
           div.id = "q" + i;
-          div.innerHTML = `<strong>${q.title}</strong><br>` +
-            q.options.map((opt, j) => `
-              <label><input type="radio" name="q${i}" value="${j+1}" onchange="scrollToNext(${i})" /> ${opt}</label>
-            `).join('');
+          div.innerHTML = `<strong>${q.title}</strong>
+            <div class="likert">
+              ${q.options.map((opt, j) => `
+                <label>
+                  <input type="radio" name="q${i}" value="${j+1}" onchange="scrollToNext(${i})">
+                  <span>${j+1}</span>
+                </label>
+              `).join('')}
+            </div>`;
           form.appendChild(div);
         });
       } catch (e) {
-        document.body.innerHTML = "<h3 style='color:red'>⚠️ 題庫載入失敗，請確認 questions_36_full.js 是否與 test.html 同在一個資料夾中，且語法無誤。</h3>";
+        document.body.innerHTML = "<h3 style='color:red'>⚠️ 題庫載入失敗，請確認 questions_36_full.js 是否與 test.html 同在一個資料夾中。</h3>";
       }
     });
 
     function scrollToNext(i) {
       const current = document.getElementById("q" + i);
       current.classList.add("answered");
+      updateProgress();
       const next = document.getElementById("q" + (i + 1));
       if (next) next.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
-function submitTest() {
-  const name = document.getElementById("userName").value.trim();
-  const date = document.getElementById("testDate").value;
-  if (!name || !date) return alert("請填寫姓名與日期");
+    function updateProgress() {
+      const total = questions.length;
+      const answered = document.querySelectorAll(".question.answered").length;
+      const percent = Math.round((answered / total) * 100);
+      document.getElementById("progressFill").style.width = percent + "%";
+    }
 
-  const scores = [];
-  for (let i = 0; i < questions.length; i++) {
-    const val = document.querySelector("input[name='q" + i + "']:checked");
-    if (!val) return alert("第 " + (i + 1) + " 題尚未作答");
-    scores.push(parseInt(val.value));
-  }
+    function submitTest() {
+      const name = document.getElementById("userName").value.trim();
+      const date = document.getElementById("testDate").value;
+      if (!name || !date) return alert("請填寫姓名與日期");
 
-  const payload = {
-    name: name,
-    date: date,
-    scores: scores
-  };
-
-  fetch(`${SUPABASE_URL}/rest/v1/results`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_API_KEY,
-      'Authorization': `Bearer ${SUPABASE_API_KEY}`,
-      'Content-Type': 'application/json',
-      'Prefer': 'return=representation'
-    },
-    body: JSON.stringify(payload)
-  })
-    .then(async response => {
-      const data = await response.json();
-      console.log("✅ Supabase 回傳狀態碼:", response.status);
-      console.log("✅ Supabase 回傳內容:", data);
-
-      if (!response.ok) {
-        alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
-        return;
+      const scores = [];
+      for (let i = 0; i < questions.length; i++) {
+        const val = document.querySelector("input[name='q" + i + "']:checked");
+        if (!val) return alert("第 " + (i + 1) + " 題尚未作答");
+        scores.push(parseInt(val.value));
       }
 
-      alert("✅ 資料已成功送出 Supabase！");
-      location.href = "result.html?name=" + encodeURIComponent(name);
-    })
-    .catch(error => {
-      console.error("❌ Supabase 送出失敗", error);
-      alert("❌ Supabase 網路錯誤：" + error.message);
-    });
-}
+      const payload = { name, date, scores };
+      fetch(`${SUPABASE_URL}/rest/v1/results`, {
+        method: 'POST',
+        headers: {
+          'apikey': SUPABASE_API_KEY,
+          'Authorization': `Bearer ${SUPABASE_API_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(async res => {
+        const data = await res.json();
+        console.log("✅ Supabase 回傳狀態碼:", res.status);
+        console.log("✅ Supabase 回傳內容:", data);
+        if (!res.ok) {
+          alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
+          return;
+        }
+        alert("✅ 資料已成功送出 Supabase！");
+        location.href = "result.html?name=" + encodeURIComponent(name);
+      })
+      .catch(error => {
+        console.error("❌ Supabase 送出失敗", error);
+        alert("❌ Supabase 網路錯誤：" + error.message);
+      });
+    }
   </script>
 </body>
 </html>
