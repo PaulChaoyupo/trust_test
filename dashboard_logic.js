@@ -1,3 +1,4 @@
+
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
 let radarChart;
@@ -22,7 +23,6 @@ function initSelectors(data) {
   const dateInput = document.getElementById("dateSelector");
   const userSelector = document.getElementById("userSelector");
 
-  // 給 select 加上儲存用屬性
   userSelector.filteredUsers = [];
 
   dateInput.addEventListener('change', () => updateUserSelector(data, dateInput.value));
