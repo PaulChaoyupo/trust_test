@@ -221,7 +221,7 @@
           alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
           return;
         }
-        alert("✅ 資料已成功送出 Supabase！");
+        alert("✅ 資料已成功送出！");
         location.href = "result.html?name=" + encodeURIComponent(name);
       })
       .catch(error => {
