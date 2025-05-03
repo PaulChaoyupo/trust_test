@@ -146,10 +146,22 @@ function runAnalysis(res) {
 
   fetchInject("radarBlock", `radar_${top}_user.html`);
   fetchInject("personaBlock", `persona_${top}_user.html`);
-  fetchInject("advBlock", `strength_${advKey}_high_user.html`);
+  fetchInject("advBlock", `strength_${advKey}_high_user.html`, 'strength_general_high_user.html');
 
   const riskDiv = document.getElementById("riskContainer");
-  riskDiv.innerHTML = '';
+riskDiv.innerHTML = '';
+
+if (low.length === 0) {
+  // 沒有低分構面，載入預設說明
+  const div = document.createElement("div");
+  div.className = "mb-2";
+  riskDiv.appendChild(div);
+  const riskKey = `risk_all_high_user.html`;
+  fetch(riskKey)
+    .then(r => r.ok ? r.text() : Promise.reject())
+    .then(h => div.innerHTML = h)
+    .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
+} else {
   low.forEach(k => {
     if (k) {
       const div = document.createElement("div");
