@@ -13,7 +13,11 @@
 
     <div class="bg-white rounded shadow p-4 mb-4">
       <canvas id="radarChart" class="mx-auto" width="300" height="300"></canvas>
-      <div id="scoreList" class="text-center mt-4 text-sm text-gray-700"></div>
+    </div>
+
+    <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
+      <h3 class="text-lg font-bold mb-2">雷達圖整體解說</h3>
+      <div>雷達圖整體解說載入中...</div>
     </div>
 
     <div id="personaBlock" class="bg-white rounded shadow p-4 mb-4">
@@ -22,13 +26,8 @@
     </div>
 
     <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
-  <h3 class="text-lg font-bold mb-2">低分構面風險建議</h3>
-  <div id="riskContainer">低分構面風險建議載入中...</div>
-</div>
-
-    <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h3 class="text-lg font-bold mb-2">雷達圖整體解說</h3>
-      <div>雷達圖整體解說載入中...</div>
+      <h3 class="text-lg font-bold mb-2">低分構面風險建議</h3>
+      <div id="riskContainer">低分構面風險建議載入中...</div>
     </div>
 
     <div id="advBlock" class="bg-white rounded shadow p-4 mb-4">
@@ -50,101 +49,4 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, 
 .then(response => response.json())
 .then(data => {
   if (!data || data.length === 0) {
-    document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 找不到測驗結果</h3>";
-    return;
-  }
-  const res = data[0];
-  res.scores = typeof res.scores === 'string' ? JSON.parse(res.scores) : res.scores;
-  runAnalysis(res);
-})
-.catch(error => {
-  console.error("❌ Supabase 抓資料失敗", error);
-  document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 無法讀取資料</h3>";
-});
-
-function runAnalysis(res) {
-  document.getElementById("basicInfo").innerText = `${res.name}｜${res.date}`;
-  const dimensionMap = {
-    "團隊展現": [0,1,32],
-    "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
-    "執行能力": [4,5,19,20,21],
-    "創意展現": [12,13,14,17,18],
-    "工作風格": [3,7,15,16,31,33]
-  };
-  const dimensionKeyMap = {
-    "團隊展現": "team",
-    "自我認知": "awareness",
-    "執行能力": "execution",
-    "創意展現": "creativity",
-    "工作風格": "workstyle"
-  };
-  const avg = {};
-  for (const [dim, idxs] of Object.entries(dimensionMap)) {
-    avg[dim] = idxs.reduce((sum, i) => sum + res.scores[i], 0) / idxs.length;
-  }
-
-  // 計算百分比
-  const percentScores = {};
-  Object.entries(avg).forEach(([k, v]) => {
-    percentScores[k] = Math.round((v - 1) / 2 * 100);
-  });
-
-  // 顯示百分比清單
-  const scoreList = Object.entries(percentScores).map(([k, v]) => `${k}：${v}%`).join(' ｜ ');
-  document.getElementById("scoreList").innerText = scoreList;
-
-  const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
-  const sorted = Object.entries(avgKey).sort((a,b) => b[1]-a[1]);
-  const top = sorted[0][0];
-  const high = sorted.filter(([_,v]) => v >= 2.6).map(([k]) => k);
-  const low = sorted.filter(([_,v]) => v < 2.1).map(([k]) => k);
-  const advKey = high.length ? high.slice(0,3).sort().join("_") : "general";
-
-  new Chart(document.getElementById("radarChart"), {
-    type: 'radar',
-    data: { labels: Object.keys(percentScores), datasets: [{ label: '構面分數 (%)', data: Object.values(percentScores), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
-    options: { 
-      scales: { 
-        r: { 
-          min:0, 
-          max:100, 
-          ticks:{ stepSize:20, callback: v => `${v}%`, font: { size: 14 } },
-          pointLabels: { font: { size: 16 } }
-        }
-      }, 
-      plugins:{ legend:{ display:false } },
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-
-function fetchInject(id, path) {
-  const block = document.getElementById(id).querySelector('div');
-  fetch(path)
-    .then(r => r.ok ? r.text() : Promise.reject())
-    .then(t => block.innerHTML = t)
-    .catch(() => block.innerHTML = `❌ 無法載入 ${path}`);
-}
-
-fetchInject("personaBlock", `persona_${top}_user.html`);
-fetchInject("advBlock", `strength_${advKey}_high_user.html`);
-fetchInject("radarBlock", `radar_${top}_user.html`);
-
-const riskDiv = document.getElementById("riskContainer");
-riskDiv.innerHTML = '';
-low.forEach(k => {
-  if (k) {
-    const div = document.createElement("div");
-    div.className = "mb-2";
-    riskDiv.appendChild(div);
-    const riskKey = `risk_${k}_low_user.html`;
-    fetch(riskKey)
-      .then(r => { if (!r.ok) throw new Error(); return r.text(); })
-      .then(h => div.innerHTML = h)
-      .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
-  }
-});
-}
-</script>
-</body>
-</html>
+    document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 找不到
