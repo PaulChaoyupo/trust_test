@@ -80,34 +80,69 @@ function showUserData(user) {
     [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
   ));
 
-  drawRadarChart(avg); // 用中文畫圖
-  // 🚀 比值與交互組合分析邏輯
-const awarenessAvg = avg["自我認知"];
-const teamAvg = avg["團隊展現"];
-const execAvg = avg["執行能力"];
-const creativityAvg = avg["創意展現"];
-const workstyleAvg = avg["工作風格"];
+  drawRadarChart(avg);
 
-const teamExecRatio = (teamAvg / execAvg).toFixed(2);
-const creativityExecRatio = (creativityAvg / execAvg).toFixed(2);
+  const awarenessAvg = avg["自我認知"];
+  const teamAvg = avg["團隊展現"];
+  const execAvg = avg["執行能力"];
+  const creativityAvg = avg["創意展現"];
+  const workstyleAvg = avg["工作風格"];
 
-let interactionSummary = `團隊/執行比值: ${teamExecRatio} ｜ 創意/執行比值: ${creativityExecRatio}`;
+  const ratios = {
+    "團隊/執行": teamAvg / execAvg,
+    "創意/執行": creativityAvg / execAvg,
+    "自我認知/執行": awarenessAvg / execAvg,
+    "團隊/自我認知": teamAvg / awarenessAvg,
+    "執行/創意": execAvg / creativityAvg
+  };
 
-let highDims = Object.entries(avg).filter(([k, v]) => v >= 2.6).map(([k]) => k);
-let lowDims = Object.entries(avg).filter(([k, v]) => v < 2.1).map(([k]) => k);
+  function classifyRatio(r) {
+    if (r >= 1.5) return "強勢";
+    if (r >= 1.2) return "中等主導";
+    return "平衡";
+  }
 
-if (highDims.length && lowDims.length) {
-  interactionSummary += ` ｜ 高分構面: ${highDims.join(", ")} ｜ 低分構面: ${lowDims.join(", ")}`;
-}
+  let ratioSummary = Object.entries(ratios)
+    .map(([k, v]) => `${k}: ${v.toFixed(2)} (${classifyRatio(v)})`)
+    .join(" ｜ ");
 
-const awarenessLevel = awarenessAvg < 2.1 ? '低' : awarenessAvg >= 2.6 ? '高' : '中等';
-interactionSummary += ` ｜ 自我認知層級: ${awarenessLevel}`;
+  let sortedDims = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+  let topDims = sortedDims.slice(0, 2).map(([k]) => k).join(" & ");
 
-// 將結果寫入 radarBlock 區塊開頭
-const radarBlock = document.getElementById('radarBlock').querySelector('div');
-radarBlock.innerHTML = `<p class="mb-2 text-gray-700">${interactionSummary}</p>` + radarBlock.innerHTML;
+  let highDims = Object.entries(avg).filter(([_, v]) => v >= 2.6).map(([k]) => k);
+  let lowDims = Object.entries(avg).filter(([_, v]) => v < 2.1).map(([k]) => k);
 
-  const topKey = dimKeyMap[getTopKey(avg)];
+  let interactionDesc = '多面向均衡型';
+  if (highDims.includes('團隊展現') && lowDims.includes('自我認知'))
+    interactionDesc = '善於協作，但需加強自我反思';
+  if (highDims.includes('創意展現') && lowDims.includes('執行能力'))
+    interactionDesc = '創意豐富，但執行力稍弱';
+  if (highDims.includes('執行能力') && lowDims.includes('工作風格'))
+    interactionDesc = '結果導向，但彈性較低';
+
+  const awarenessLevel = awarenessAvg < 2.1 ? '低自覺'
+    : awarenessAvg >= 2.6 ? '高自覺'
+    : '中等自覺';
+
+  const summaryHTML = `
+<p class="mb-2 text-gray-700 whitespace-pre-line">
+【比值分析】
+${ratioSummary}
+
+【主次構面組合】
+${topDims}
+
+【交互組合分析】
+${interactionDesc}
+
+【自覺層級】
+${awarenessLevel}
+</p>`;
+
+  const radarBlock = document.getElementById('radarBlock').querySelector('div');
+  radarBlock.innerHTML = summaryHTML + radarBlock.innerHTML;
+
+  const topKey = dimKeyMap[sortedDims[0][0]];
   const advKey = getAdvKey(avg, dimKeyMap);
   loadHTML('personaBlock', `persona_${topKey}.html`);
   loadHTML('advBlock', `strength_${advKey}_high.html`);
