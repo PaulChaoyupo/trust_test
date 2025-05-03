@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -23,7 +24,7 @@
 
     <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
       <h3 class="text-lg font-bold mb-2">低分構面風險建議</h3>
-      <div>低分構面風險建議載入中...</div>
+      <div id="riskContainer">低分構面風險建議載入中...</div>
     </div>
 
     <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
@@ -88,10 +89,8 @@ function runAnalysis(res) {
     percentScores[k] = Math.round((v - 1) / 2 * 100);
   });
 
-  // 顯示百分比清單
-  document.getElementById("scoreList").innerText = Object.entries(percentScores)
-    .map(([k, v]) => `${k}：${v}%`)
-    .join(' ｜ ');
+  const scoreList = Object.entries(percentScores).map(([k, v]) => `${k}：${v}%`).join(' ｜ ');
+  document.getElementById("scoreList").innerText = scoreList;
 
   const avgKey = Object.fromEntries(Object.entries(avg).map(([k, v]) => [dimensionKeyMap[k], v]));
   const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
@@ -102,25 +101,25 @@ function runAnalysis(res) {
 
   new Chart(document.getElementById("radarChart"), {
     type: 'radar',
-    data: {
-      labels: Object.keys(percentScores),
+    data: { 
+      labels: Object.keys(percentScores), 
       datasets: [{
         label: '構面分數 (%)',
         data: Object.values(percentScores),
         backgroundColor: 'rgba(33,111,163,0.2)',
         borderColor: '#2170a3',
         pointBackgroundColor: '#2170a3'
-      }]
+      }] 
     },
-    options: {
-      scales: {
-        r: {
-          min: 0,
-          max: 100,
+    options: { 
+      scales: { 
+        r: { 
+          min: 0, 
+          max: 100, 
           ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 14 } },
           pointLabels: { font: { size: 16 } }
         }
-      },
+      }, 
       plugins: { legend: { display: false } },
       responsive: true,
       maintainAspectRatio: false
@@ -139,7 +138,7 @@ function runAnalysis(res) {
   fetchInject("advBlock", `strength_${advKey}_high_user.html`);
   fetchInject("radarBlock", `radar_${top}_user.html`);
 
-  const riskContainer = document.getElementById("riskBlock").querySelector('div');
+  const riskContainer = document.getElementById("riskContainer");
   riskContainer.innerHTML = '';
   low.forEach(k => {
     if (k) {
