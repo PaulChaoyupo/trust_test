@@ -80,9 +80,9 @@ function showUserData(user) {
     [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
   ));
 
-  drawRadarChart(avg);
+  drawRadarChart(avg); // 用中文畫圖
 
-  const topKey = getTopKey(avg, dimKeyMap);
+  const topKey = dimKeyMap[getTopKey(avg)];
   const advKey = getAdvKey(avg, dimKeyMap);
   loadHTML('personaBlock', `persona_${topKey}.html`);
   loadHTML('advBlock', `strength_${advKey}_high.html`);
@@ -92,11 +92,39 @@ function showUserData(user) {
 
 function drawRadarChart(avg) {
   if (radarChart) radarChart.destroy();
+
+  // 轉換成百分比
+  const percentData = Object.values(avg).map(v => Math.round((v - 1) / 2 * 100));
+
   radarChart = new Chart(document.getElementById("radarChart"), {
     type: 'radar',
-    data: { labels: Object.keys(avg), datasets: [{ label: '構面分數', data: Object.values(avg), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
-    options: { scales: { r: { min:1, max:3, ticks:{ stepSize:0.5 } } }, plugins:{ legend:{ display:false } } }
+    data: {
+      labels: Object.keys(avg), // 中文標籤
+      datasets: [{
+        label: '構面分數 (%)',
+        data: percentData,
+        backgroundColor: 'rgba(33,111,163,0.2)',
+        borderColor: '#2170a3',
+        pointBackgroundColor: '#2170a3'
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          min: 0,
+          max: 100,
+          ticks: { stepSize: 20, callback: v => `${v}%`, backdropColor: 'transparent', font: { size: 14 } },
+          pointLabels: { font: { size: 16 } }
+        }
+      },
+      plugins: { legend: { display: false } },
+      responsive: true,
+      maintainAspectRatio: false // 可縮小 canvas 容器控制大小
+    }
   });
+
+  // 建議調整 canvas CSS，例如：
+  // <canvas id=\"radarChart\" style=\"width:100%;height:300px;\"></canvas>
 }
 
 function loadHTML(id, path) {
@@ -122,12 +150,11 @@ function loadAwareness(user) {
   loadHTML('awarenessBlock', `awareness_${level}.html`);
 }
 
-function getTopKey(avg, dimKeyMap) {
-  const top = Object.entries(avg).sort((a,b) => b[1]-a[1])[0][0];
-  return dimKeyMap[top];
+function getTopKey(avg) {
+  return Object.entries(avg).sort((a,b) => b[1]-a[1])[0][0];
 }
 
 function getAdvKey(avg, dimKeyMap) {
   const high = Object.entries(avg).filter(([_,v]) => v >= 2.6).map(([k]) => dimKeyMap[k]);
-  return high.length ? high.slice(0,3).sort().join('_') : dimKeyMap[getTopKey(avg, dimKeyMap)];
+  return high.length ? high.slice(0,3).sort().join('_') : dimKeyMap[getTopKey(avg)];
 }
