@@ -1,0 +1,110 @@
+const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
+const SUPABASE_API_KEY = 'YOUR_API_KEY_HERE';
+let radarChart;
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetchData();
+});
+
+function fetchData() {
+  fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
+    headers: {
+      'apikey': SUPABASE_API_KEY,
+      'Authorization': `Bearer ${SUPABASE_API_KEY}`
+    }
+  })
+  .then(res => res.json())
+  .then(data => initSelectors(data))
+  .catch(err => console.error("❌ 資料讀取失敗", err));
+}
+
+function initSelectors(data) {
+  const dateInput = document.getElementById("dateSelector");
+  dateInput.addEventListener('change', () => updateUserSelector(data, dateInput.value));
+}
+
+function updateUserSelector(data, selectedDate) {
+  const userSelector = document.getElementById("userSelector");
+  userSelector.innerHTML = "<option value=''>請選擇</option>";
+  userSelector.disabled = false;
+
+  const filtered = data.filter(d => d.date.substring(0,10) === selectedDate);
+  filtered.forEach((d, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.text = d.name;
+    userSelector.appendChild(opt);
+  });
+
+  userSelector.addEventListener('change', () => showUserData(filtered[userSelector.value]));
+}
+
+function showUserData(user) {
+  if (!user) return;
+
+  try {
+    user.scores = typeof user.scores === 'string' ? JSON.parse(user.scores) : user.scores;
+  } catch {
+    console.error("❌ scores JSON 解析失敗", user.scores);
+    return;
+  }
+
+  const dimMap = {
+    "團隊展現": [0,1,32],
+    "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
+    "執行能力": [4,5,19,20,21],
+    "創意展現": [12,13,14,17,18],
+    "工作風格": [3,7,15,16,31,33]
+  };
+  const avg = Object.fromEntries(Object.entries(dimMap).map(([k, idx]) =>
+    [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
+  ));
+
+  drawRadarChart(avg);
+
+  loadHTML('personaBlock', `persona_${getTopKey(avg)}.html`);
+  loadHTML('advBlock', `strength_${getAdvKey(avg)}_high.html`);
+  loadLowScores(avg);
+  loadAwareness(user);
+}
+
+function drawRadarChart(avg) {
+  if (radarChart) radarChart.destroy();
+  radarChart = new Chart(document.getElementById("radarChart"), {
+    type: 'radar',
+    data: { labels: Object.keys(avg), datasets: [{ label: '構面分數', data: Object.values(avg), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
+    options: { scales: { r: { min:1, max:3, ticks:{ stepSize:0.5 } } }, plugins:{ legend:{ display:false } } }
+  });
+}
+
+function loadHTML(id, path) {
+  fetch(path)
+    .then(r => r.ok ? r.text() : Promise.reject())
+    .then(t => document.getElementById(id).innerHTML = t)
+    .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`);
+}
+
+function loadLowScores(avg) {
+  const riskDiv = document.getElementById("riskBlock");
+  riskDiv.innerHTML = '';
+  Object.entries(avg).sort((a,b) => a[1]-b[1]).slice(0,2).forEach(([k]) => {
+    const div = document.createElement("div");
+    riskDiv.appendChild(div);
+    loadHTML(div, `risk_${k}_low.html`);
+  });
+}
+
+function loadAwareness(user) {
+  const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum,i) => sum + user.scores[i],0) / 13;
+  const level = awarenessAvg < 2.1 ? 'low' : awarenessAvg >= 2.6 ? 'high' : 'balanced';
+  loadHTML('awarenessBlock', `awareness_${level}.html`);
+}
+
+function getTopKey(avg) {
+  return Object.entries(avg).sort((a,b) => b[1]-a[1])[0][0];
+}
+
+function getAdvKey(avg) {
+  const high = Object.entries(avg).filter(([_,v]) => v >= 2.6).map(([k]) => k);
+  return high.length ? high.slice(0,3).sort().join('_') : getTopKey(avg);
+}
