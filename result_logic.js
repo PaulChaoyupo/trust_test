@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
+
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 let radarChart;
@@ -17,23 +17,24 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function fetchUserData(userId) {
-  const { data, error } = await supabase
-    .from('results')
-    .select('*')
-    .eq('id', userId)
-    .single();
+  let query = supabase.from('results').select('*');
+  if (userId) {
+    query = query.eq('id', userId).single();
+  } else {
+    query = query.order('created_at', { ascending: false }).limit(1).single();
+  }
 
+  const { data, error } = await query;
   if (error) {
     console.error('❌ Supabase 錯誤', error);
     return null;
   }
-
   return data;
 }
 
 function getUserIdFromURL() {
   const params = new URLSearchParams(window.location.search);
-  return params.get('id'); // 例如 dashboard.html?id=123
+  return params.get('id');
 }
 
 function showUserData(user) {
@@ -60,17 +61,15 @@ function showUserData(user) {
   drawRadarChart(avg);
   const topKey = dimKeyMap[getTopKey(avg)];
   const advKey = getAdvKey(avg, dimKeyMap);
-  loadHTML('personaBlock', `./persona_${topKey}.html`);
-  loadHTML('advBlock', `./strength_${advKey}_high.html`);
+  loadHTML('personaBlock', `./persona_${topKey}_user.html`);
+  loadHTML('advBlock', `./strength_${advKey}_high_user.html`);
   loadLowScores(avg, dimKeyMap);
   loadAwareness(user);
 }
 
 function drawRadarChart(avg) {
   if (radarChart) radarChart.destroy();
-
   const percentData = Object.values(avg).map(v => Math.round((v - 1) / 2 * 100));
-
   radarChart = new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
@@ -115,4 +114,38 @@ function loadLowScores(avg, dimKeyMap) {
 
   const importanceOrder = ["自我認知", "團隊展現", "執行能力", "創意展現", "工作風格"];
   const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
-  const
+  
+  // 混用舊版小於2.1門檻
+  const lowCandidates = entries.filter(([_, v]) => v < 2.1).map(([k]) => k);
+  const sortedByImportance = importanceOrder.filter(k => lowCandidates.includes(k)).slice(0, 2);
+
+  console.log("⚠️ 最終選定的低分構面（依重要性）:", sortedByImportance);
+
+  sortedByImportance.forEach(k => {
+    const div = document.createElement("div");
+    div.className = "mb-4 p-3 bg-red-100 rounded shadow text-red-700";
+    riskDiv.appendChild(div);
+    const riskKey = `./risk_${dimKeyMap[k]}_low_user.html`;
+    console.log(`⚠️ 嘗試載入: ${riskKey}`);
+    fetch(riskKey)
+      .then(r => r.ok ? r.text() : Promise.reject(`HTTP ${r.status}`))
+      .then(h => { div.innerHTML = h; console.log(`✅ 成功載入: ${riskKey}`); })
+      .catch(err => { div.innerHTML = `❌ 無法載入 ${riskKey} (${err.message})`; console.error(`❌ 無法載入 ${riskKey}`, err); });
+  });
+}
+
+function loadAwareness(user) {
+  const awarenessIdx = [2,6,8,9,10,11,26,27,28,29,30,32,34];
+  const awarenessAvg = awarenessIdx.reduce((sum, i) => sum + user.scores[i], 0) / awarenessIdx.length;
+  const level = awarenessAvg < 2.1 ? 'low' : awarenessAvg >= 2.6 ? 'high' : 'balanced';
+  loadHTML('awarenessBlock', `./awareness_${level}_user.html`);
+}
+
+function getTopKey(avg) {
+  return Object.entries(avg).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+function getAdvKey(avg, dimKeyMap) {
+  const high = Object.entries(avg).filter(([_, v]) => v >= 2.6).map(([k]) => dimKeyMap[k]);
+  return high.length ? high.slice(0, 3).sort().join('_') : dimKeyMap[getTopKey(avg)];
+}
