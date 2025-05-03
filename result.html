@@ -115,14 +115,20 @@ function runAnalysis(res) {
       }]
     },
     options: {
-      layout: { padding: 30 },
-      scales: {
-        r: {
-          min: 0,
-          max: 100,
-          ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 12 } },
-          pointLabels: { font: { size: 14 }, padding: 10 }
-        }
+  layout: { padding: 50 }, // 加大四周 padding，防止被裁切
+  scales: {
+    r: {
+      min: 0,
+      max: 100,
+      ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 12 } },
+      pointLabels: { font: { size: 14 }, padding: 20 } // 增加 padding
+    }
+  },
+  plugins: { legend: { display: false } },
+  responsive: true,
+  maintainAspectRatio: false
+}
+
       },
       plugins: { legend: { display: false } },
       responsive: true,
