@@ -1,8 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
-
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_API_KEY);
 
 let radarChart;
 
@@ -21,15 +19,14 @@ async function fetchUserData(userId) {
   if (userId) {
     query = query.eq('id', userId).single();
   } else {
-    query = query.order('created_at', { ascending: false }).limit(1).single();
+    query = query.order('created_at', { ascending: false }).limit(1);
   }
-
   const { data, error } = await query;
   if (error) {
     console.error('❌ Supabase 錯誤', error);
     return null;
   }
-  return data;
+  return Array.isArray(data) ? data[0] : data;
 }
 
 function getUserIdFromURL() {
@@ -54,8 +51,18 @@ function showUserData(user) {
     "工作風格": "workstyle"
   };
 
+  let scores = user.scores;
+  if (typeof scores === 'string') {
+    try {
+      scores = JSON.parse(scores);
+    } catch {
+      console.error('❌ scores 格式錯誤');
+      return;
+    }
+  }
+
   const avg = Object.fromEntries(Object.entries(dimMap).map(([k, idx]) =>
-    [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
+    [k, idx.reduce((sum, i) => sum + scores[i], 0) / idx.length]
   ));
 
   drawRadarChart(avg);
@@ -64,7 +71,7 @@ function showUserData(user) {
   loadHTML('personaBlock', `./persona_${topKey}_user.html`);
   loadHTML('advBlock', `./strength_${advKey}_high_user.html`);
   loadLowScores(avg, dimKeyMap);
-  loadAwareness(user);
+  loadAwareness(scores);
 }
 
 function drawRadarChart(avg) {
@@ -111,16 +118,11 @@ function loadHTML(id, path) {
 function loadLowScores(avg, dimKeyMap) {
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
-
   const importanceOrder = ["自我認知", "團隊展現", "執行能力", "創意展現", "工作風格"];
   const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
-  
-  // 混用舊版小於2.1門檻
   const lowCandidates = entries.filter(([_, v]) => v < 2.1).map(([k]) => k);
   const sortedByImportance = importanceOrder.filter(k => lowCandidates.includes(k)).slice(0, 2);
-
   console.log("⚠️ 最終選定的低分構面（依重要性）:", sortedByImportance);
-
   sortedByImportance.forEach(k => {
     const div = document.createElement("div");
     div.className = "mb-4 p-3 bg-red-100 rounded shadow text-red-700";
@@ -134,9 +136,9 @@ function loadLowScores(avg, dimKeyMap) {
   });
 }
 
-function loadAwareness(user) {
+function loadAwareness(scores) {
   const awarenessIdx = [2,6,8,9,10,11,26,27,28,29,30,32,34];
-  const awarenessAvg = awarenessIdx.reduce((sum, i) => sum + user.scores[i], 0) / awarenessIdx.length;
+  const awarenessAvg = awarenessIdx.reduce((sum, i) => sum + scores[i], 0) / awarenessIdx.length;
   const level = awarenessAvg < 2.1 ? 'low' : awarenessAvg >= 2.6 ? 'high' : 'balanced';
   loadHTML('awarenessBlock', `./awareness_${level}_user.html`);
 }
