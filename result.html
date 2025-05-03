@@ -23,7 +23,7 @@
 
     <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
       <h3 class="text-lg font-bold mb-2">低分構面風險建議</h3>
-      <div>低分構面風險建議載入中...</div>
+      <div id="riskContainer">低分構面風險建議載入中...</div>
     </div>
 
     <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
@@ -39,7 +39,7 @@
 
 <script>
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
+const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...';
 
 fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, {
   headers: {
@@ -83,67 +83,20 @@ function runAnalysis(res) {
     avg[dim] = idxs.reduce((sum, i) => sum + res.scores[i], 0) / idxs.length;
   }
 
-  // 計算百分比
   const percentScores = {};
   Object.entries(avg).forEach(([k, v]) => {
     percentScores[k] = Math.round((v - 1) / 2 * 100);
   });
 
-  // 顯示百分比清單
   const scoreList = Object.entries(percentScores).map(([k, v]) => `${k}：${v}%`).join(' ｜ ');
   document.getElementById("scoreList").innerText = scoreList;
 
-  const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
-  const sorted = Object.entries(avgKey).sort((a,b) => b[1]-a[1]);
+  const avgKey = Object.fromEntries(Object.entries(avg).map(([k, v]) => [dimensionKeyMap[k], v]));
+  const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
   const top = sorted[0][0];
-  const high = sorted.filter(([_,v]) => v >= 2.6).map(([k]) => k);
-  const low = sorted.filter(([_,v]) => v < 2.1).map(([k]) => k);
-  const advKey = high.length ? high.slice(0,3).sort().join("_") : "general";
+  const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+  const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
+  const advKey = high.length ? high.slice(0, 3).sort().join("_") : "general";
 
   new Chart(document.getElementById("radarChart"), {
     type: 'radar',
-    data: { labels: Object.keys(percentScores), datasets: [{ label: '構面分數 (%)', data: Object.values(percentScores), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
-    options: { 
-      scales: { 
-        r: { 
-          min:0, 
-          max:100, 
-          ticks:{ stepSize:20, callback: v => `${v}%`, font: { size: 14 } },
-          pointLabels: { font: { size: 16 } }
-        }
-      }, 
-      plugins:{ legend:{ display:false } },
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-
-  function fetchInject(id,path){
-    fetch(path)
-      .then(r=>r.ok?r.text():Promise.reject())
-      .then(t=>document.getElementById(id).querySelector('div').innerHTML=t)
-      .catch(()=>document.getElementById(id).querySelector('div').innerHTML=`❌ 無法載入 ${path}`);
-  }
-
-  fetchInject("personaBlock", `persona_${top}_user.html`);
-  fetchInject("advBlock", `strength_${advKey}_high_user.html`); 
-  fetchInject("radarBlock", `radar_${top}_user.html`);
-  
-  const riskDiv = document.getElementById("riskBlock").querySelector('div');
-  riskDiv.innerHTML = '';
-  low.forEach(k=>{
-    if (k) {
-      const div = document.createElement("div");
-      div.className = "mb-2";
-      riskDiv.appendChild(div);
-      const riskKey = `risk_${k}_low_user.html`;
-      fetch(riskKey)
-        .then(r=>{ if(!r.ok) throw new Error(); return r.text(); })
-        .then(h=>div.innerHTML=h)
-        .catch(()=>div.innerHTML=`❌ 無法載入 ${riskKey}`);
-    }
-  });
-}
-</script>
-</body>
-</html>
