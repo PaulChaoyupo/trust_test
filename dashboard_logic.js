@@ -138,20 +138,21 @@ function loadLowScores(avg, dimKeyMap) {
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
 
+  const importanceOrder = ["自我認知", "團隊展現", "執行能力", "創意展現", "工作風格"];
   const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
-  const minScore = entries[0][1];
+  
+  // 先抓最低分的前4個，避免同分漏掉
+  const lowCandidates = entries.slice(0, 4).map(([k]) => k);
 
-  // 選出所有等於最低分的構面，最多顯示 3 個
-  const lowItems = entries.filter(([_, v]) => v === minScore)
-                          .slice(0, 3)
-                          .map(([k]) => dimKeyMap[k]);
+  // 再依重要性排序，挑前2個
+  const sortedByImportance = importanceOrder.filter(k => lowCandidates.includes(k)).slice(0, 2);
 
-  console.log("⚠️ 最低分構面（含同分）:", lowItems);
+  console.log("⚠️ 最終選定的低分構面（依重要性）:", sortedByImportance);
 
-  lowItems.forEach(k => {
+  sortedByImportance.forEach(k => {
     const div = document.createElement("div");
     riskDiv.appendChild(div);
-    const riskKey = `./risk_${k}_low.html`; // 注意相對路徑，適用 GitHub Pages
+    const riskKey = `./risk_${dimKeyMap[k]}_low.html`;
 
     console.log(`⚠️ 嘗試載入: ${riskKey}`);
 
@@ -170,7 +171,6 @@ function loadLowScores(avg, dimKeyMap) {
       });
   });
 }
-
 
 function loadAwareness(user) {
   const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum,i) => sum + user.scores[i],0) / 13;
