@@ -20,7 +20,18 @@ function fetchData() {
 
 function initSelectors(data) {
   const dateInput = document.getElementById("dateSelector");
+  const userSelector = document.getElementById("userSelector");
+
+  // 給 select 加上儲存用屬性
+  userSelector.filteredUsers = [];
+
   dateInput.addEventListener('change', () => updateUserSelector(data, dateInput.value));
+
+  userSelector.addEventListener('change', () => {
+    const selectedIndex = userSelector.value;
+    const selectedUser = userSelector.filteredUsers[selectedIndex];
+    if (selectedUser) showUserData(selectedUser);
+  });
 }
 
 function updateUserSelector(data, selectedDate) {
@@ -29,14 +40,14 @@ function updateUserSelector(data, selectedDate) {
   userSelector.disabled = false;
 
   const filtered = data.filter(d => d.date.substring(0,10) === selectedDate);
+  userSelector.filteredUsers = filtered;
+
   filtered.forEach((d, i) => {
     const opt = document.createElement("option");
     opt.value = i;
     opt.text = d.name;
     userSelector.appendChild(opt);
   });
-
-  userSelector.addEventListener('change', () => showUserData(filtered[userSelector.value]));
 }
 
 function showUserData(user) {
