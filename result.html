@@ -1,113 +1,73 @@
-
-<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
-  <title>測驗結果</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talent Sketch 結果頁</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>你的測驗結果分析</h2>
-  <p id="basicInfo">姓名 / 日期</p>
-  <canvas id="radarChart" width="250" height="250"></canvas>
-  <div id="personaBlock">主導構面敘述載入中...</div>
-  <div id="advBlock">優勢組合說明載入中...</div>
-  <div id="riskBlock">低分構面風險建議載入中...</div>
-  <div id="radarBlock">雷達圖整體解說載入中...</div>
-  <script>
-const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
+<body class="bg-gray-50">
 
-fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, {
-  headers: {
-    'apikey': SUPABASE_API_KEY,
-    'Authorization': `Bearer ${SUPABASE_API_KEY}`
-  }
-})
-.then(response => response.json())
-.then(data => {
-  if (!data || data.length === 0) {
-    document.body.innerHTML = "<h3 style='color:red'>⚠️ 找不到測驗結果</h3>";
-    return;
-  }
-  const res = data[0];
-  res.scores = typeof res.scores === 'string' ? JSON.parse(res.scores) : res.scores;
-  runAnalysis(res);
-})
-.catch(error => {
-  console.error("❌ Supabase 抓資料失敗", error);
-  document.body.innerHTML = "<h3 style='color:red'>⚠️ 無法讀取資料</h3>";
-});
+  <!-- 導覽列 -->
+  <nav class="bg-yellow-400 p-4 flex justify-between items-center shadow">
+    <div class="text-xl font-bold text-gray-800">Talent Sketch 結果頁</div>
+    <button class="text-gray-700">返回首頁</button>
+  </nav>
 
-function runAnalysis(res) {
-  document.getElementById("basicInfo").innerText = `${res.name}｜${res.date}`;
-  const dimensionMap = {
-    "團隊展現": [0,1,32],
-    "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
-    "執行能力": [4,5,19,20,21],
-    "創意展現": [12,13,14,17,18],
-    "工作風格": [3,7,15,16,31,33]
-  };
-  const dimensionKeyMap = {
-    "團隊展現": "team",
-    "自我認知": "awareness",
-    "執行能力": "execution",
-    "創意展現": "creativity",
-    "工作風格": "workstyle"
-  };
-  const avg = {};
-  for (const [dim, idxs] of Object.entries(dimensionMap)) {
-    avg[dim] = idxs.reduce((sum, i) => sum + res.scores[i], 0) / idxs.length;
-  }
-  const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
-  const sorted = Object.entries(avgKey).sort((a,b) => b[1]-a[1]);
-  const top = sorted[0][0];
-  const high = sorted.filter(([_,v]) => v >= 2.6).map(([k]) => k);
-  const low = sorted.filter(([_,v]) => v < 2.1).map(([k]) => k);
-  const advKey = high.length ? high.slice(0,3).sort().join("_") : "general";
+  <main class="max-w-5xl mx-auto p-4">
 
-  new Chart(document.getElementById("radarChart"), {
-    type: 'radar',
-    data: { labels: Object.keys(avg), datasets: [{ label: '構面分數', data: Object.values(avgKey), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
-    options: { 
-      scales: { 
-        r: { 
-          min:1, 
-          max:3, 
-          ticks:{ stepSize:0.5, font: { size: 14 } },
-          pointLabels: { font: { size: 16 } }
-        }
-      }, 
-      plugins:{ legend:{ display:false } } 
-    }
-  });
+    <!-- 分析區塊 -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div id="personaBlock" class="bg-white rounded shadow p-4">主導構面分析</div>
+      <div id="advBlock" class="bg-white rounded shadow p-4">優勢組合分析</div>
+      <div id="riskBlock" class="bg-white rounded shadow p-4 md:col-span-2">低分風險分析</div>
+      <div id="awarenessBlock" class="bg-white rounded shadow p-4 md:col-span-2">自覺程度分析</div>
+    </section>
+    
+  </main>
 
-  function fetchInject(id,path){
-    fetch(path)
-      .then(r=>r.ok?r.text():Promise.reject())
-      .then(t=>document.getElementById(id).innerHTML=t)
-      .catch(()=>document.getElementById(id).innerHTML=`❌ 無法載入 ${path}`);
-  }
-
-  fetchInject("personaBlock", `persona_${top}_user.html`);
-  fetchInject("advBlock", `strength_${advKey}_high_user.html`);
-  fetchInject("radarBlock", `radar_${top}_user.html`);
-
+<script>
+function loadLowScores(avg, dimKeyMap) {
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
-  low.forEach(k=>{
-    if (k) {
-      const div = document.createElement("div");
-      riskDiv.appendChild(div);
-      const riskKey = `risk_${k}_low_user.html`;
-      fetch(riskKey)
-        .then(r=>{ if(!r.ok) throw new Error(); return r.text(); })
-        .then(h=>div.innerHTML=h)
-        .catch(()=>div.innerHTML=`❌ 無法載入 ${riskKey}`);
-    }
+
+  const importanceOrder = ["自我認知", "團隊展現", "執行能力", "創意展現", "工作風格"];
+  const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
+
+  // 先抓最低分前4個
+  const lowCandidates = entries.slice(0, 4).map(([k]) => k);
+
+  // 再依重要性排序，挑前2個
+  const sortedByImportance = importanceOrder.filter(k => lowCandidates.includes(k)).slice(0, 2);
+
+  console.log("⚠️ 最終選定的低分構面（依重要性）:", sortedByImportance);
+
+  sortedByImportance.forEach(k => {
+    const div = document.createElement("div");
+    div.className = "mb-4 p-3 bg-red-100 rounded shadow text-red-700"; // 美化樣式
+    riskDiv.appendChild(div);
+    const riskKey = `./risk_${dimKeyMap[k]}_low.html`;
+
+    console.log(`⚠️ 嘗試載入: ${riskKey}`);
+
+    fetch(riskKey)
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text();
+      })
+      .then(h => {
+        div.innerHTML = h;
+        console.log(`✅ 成功載入: ${riskKey}`);
+      })
+      .catch(err => {
+        div.innerHTML = `❌ 無法載入 ${riskKey} (${err.message})`;
+        console.error(`❌ 無法載入 ${riskKey}`, err);
+      });
   });
 }
 </script>
+<script src="./result_logic.js"></script>
+
 </body>
 </html>
