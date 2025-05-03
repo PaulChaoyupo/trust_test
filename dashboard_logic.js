@@ -81,6 +81,31 @@ function showUserData(user) {
   ));
 
   drawRadarChart(avg); // 用中文畫圖
+  // 🚀 比值與交互組合分析邏輯
+const awarenessAvg = avg["自我認知"];
+const teamAvg = avg["團隊展現"];
+const execAvg = avg["執行能力"];
+const creativityAvg = avg["創意展現"];
+const workstyleAvg = avg["工作風格"];
+
+const teamExecRatio = (teamAvg / execAvg).toFixed(2);
+const creativityExecRatio = (creativityAvg / execAvg).toFixed(2);
+
+let interactionSummary = `團隊/執行比值: ${teamExecRatio} ｜ 創意/執行比值: ${creativityExecRatio}`;
+
+let highDims = Object.entries(avg).filter(([k, v]) => v >= 2.6).map(([k]) => k);
+let lowDims = Object.entries(avg).filter(([k, v]) => v < 2.1).map(([k]) => k);
+
+if (highDims.length && lowDims.length) {
+  interactionSummary += ` ｜ 高分構面: ${highDims.join(", ")} ｜ 低分構面: ${lowDims.join(", ")}`;
+}
+
+const awarenessLevel = awarenessAvg < 2.1 ? '低' : awarenessAvg >= 2.6 ? '高' : '中等';
+interactionSummary += ` ｜ 自我認知層級: ${awarenessLevel}`;
+
+// 將結果寫入 radarBlock 區塊開頭
+const radarBlock = document.getElementById('radarBlock').querySelector('div');
+radarBlock.innerHTML = `<p class="mb-2 text-gray-700">${interactionSummary}</p>` + radarBlock.innerHTML;
 
   const topKey = dimKeyMap[getTopKey(avg)];
   const advKey = getAdvKey(avg, dimKeyMap);
