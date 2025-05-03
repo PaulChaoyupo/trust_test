@@ -23,7 +23,7 @@
 
     <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
       <h3 class="text-lg font-bold mb-2">低分構面風險建議</h3>
-      <div id="riskContainer">低分構面風險建議載入中...</div>
+      <div>低分構面風險建議載入中...</div>
     </div>
 
     <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
@@ -88,8 +88,10 @@ function runAnalysis(res) {
     percentScores[k] = Math.round((v - 1) / 2 * 100);
   });
 
-  const scoreList = Object.entries(percentScores).map(([k, v]) => `${k}：${v}%`).join(' ｜ ');
-  document.getElementById("scoreList").innerText = scoreList;
+  // 顯示百分比清單
+  document.getElementById("scoreList").innerText = Object.entries(percentScores)
+    .map(([k, v]) => `${k}：${v}%`)
+    .join(' ｜ ');
 
   const avgKey = Object.fromEntries(Object.entries(avg).map(([k, v]) => [dimensionKeyMap[k], v]));
   const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
@@ -100,3 +102,58 @@ function runAnalysis(res) {
 
   new Chart(document.getElementById("radarChart"), {
     type: 'radar',
+    data: {
+      labels: Object.keys(percentScores),
+      datasets: [{
+        label: '構面分數 (%)',
+        data: Object.values(percentScores),
+        backgroundColor: 'rgba(33,111,163,0.2)',
+        borderColor: '#2170a3',
+        pointBackgroundColor: '#2170a3'
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          min: 0,
+          max: 100,
+          ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 14 } },
+          pointLabels: { font: { size: 16 } }
+        }
+      },
+      plugins: { legend: { display: false } },
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+
+  function fetchInject(id, path) {
+    const block = document.getElementById(id).querySelector('div');
+    fetch(path)
+      .then(r => r.ok ? r.text() : Promise.reject())
+      .then(t => block.innerHTML = t)
+      .catch(() => block.innerHTML = `❌ 無法載入 ${path}`);
+  }
+
+  fetchInject("personaBlock", `persona_${top}_user.html`);
+  fetchInject("advBlock", `strength_${advKey}_high_user.html`);
+  fetchInject("radarBlock", `radar_${top}_user.html`);
+
+  const riskContainer = document.getElementById("riskBlock").querySelector('div');
+  riskContainer.innerHTML = '';
+  low.forEach(k => {
+    if (k) {
+      const div = document.createElement("div");
+      div.className = "mb-2";
+      riskContainer.appendChild(div);
+      const riskKey = `risk_${k}_low_user.html`;
+      fetch(riskKey)
+        .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+        .then(h => div.innerHTML = h)
+        .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
+    }
+  });
+}
+</script>
+</body>
+</html>
