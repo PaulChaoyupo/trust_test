@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -5,6 +6,12 @@
   <title>測驗結果</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    canvas {
+      max-width: 100%;
+      height: auto !important;
+    }
+  </style>
 </head>
 <body class="bg-gray-50">
   <div class="max-w-4xl mx-auto p-4">
@@ -12,7 +19,7 @@
     <p id="basicInfo" class="text-center mb-6 text-gray-700">姓名 / 日期</p>
 
     <div class="bg-white rounded shadow p-4 mb-6">
-      <canvas id="radarChart" class="mx-auto" width="300" height="300"></canvas>
+      <canvas id="radarChart" class="mx-auto"></canvas>
     </div>
 
     <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
@@ -98,7 +105,7 @@ function runAnalysis(res) {
   new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
-      labels: Object.keys(percentScores).map(k => `${k} (${percentScores[k]}%)`),
+      labels: Object.keys(percentScores).map(k => `${k}\n${percentScores[k]}%`),
       datasets: [{
         label: '構面分數 (%)',
         data: Object.values(percentScores),
@@ -108,12 +115,13 @@ function runAnalysis(res) {
       }]
     },
     options: {
+      layout: { padding: 30 },
       scales: {
         r: {
           min: 0,
           max: 100,
-          ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 14 } },
-          pointLabels: { font: { size: 16 } }
+          ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 12 } },
+          pointLabels: { font: { size: 14 }, padding: 10 }
         }
       },
       plugins: { legend: { display: false } },
@@ -134,7 +142,7 @@ function runAnalysis(res) {
   fetchInject("personaBlock", `persona_${top}_user.html`);
   fetchInject("advBlock", `strength_${advKey}_high_user.html`);
 
-  const riskDiv = document.getElementById("riskBlock").querySelector('#riskContainer');
+  const riskDiv = document.getElementById("riskContainer");
   riskDiv.innerHTML = '';
   low.forEach(k => {
     if (k) {
