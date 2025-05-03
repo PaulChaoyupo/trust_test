@@ -66,7 +66,6 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, 
 
 function runAnalysis(res) {
   document.getElementById("basicInfo").innerText = `${res.name}｜${res.date}`;
-
   const dimensionMap = {
     "團隊展現": [0,1,32],
     "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
@@ -92,18 +91,18 @@ function runAnalysis(res) {
     percentScores[k] = Math.round((v - 1) / 2 * 100);
   });
 
-  const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
-  const sorted = Object.entries(avgKey).sort((a,b) => b[1]-a[1]);
+  const avgKey = Object.fromEntries(Object.entries(avg).map(([k, v]) => [dimensionKeyMap[k], v]));
+  const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
   const top = sorted[0][0];
-  const high = sorted.filter(([_,v]) => v >= 2.6).map(([k]) => k);
-  const low = sorted.filter(([_,v]) => v < 2.1).map(([k]) => k);
-  const advKey = high.length ? high.slice(0,3).sort().join("_") : "general";
+  const high = sorted.filter(([_, v]) => v >= 2.6).map(([k]) => k);
+  const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
+  const advKey = high.length ? high.slice(0, 3).sort().join("_") : "general";
 
   if (radarChart && typeof radarChart.destroy === 'function') radarChart.destroy();
   radarChart = new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
-      labels: Object.entries(percentScores).map(([k, v]) => `${k} (${v}%)`),
+      labels: Object.entries(percentScores).map(([k, v]) => `${k}\n${v}%`),
       datasets: [{
         label: '構面分數 (%)',
         data: Object.values(percentScores),
@@ -118,7 +117,7 @@ function runAnalysis(res) {
           min: 0,
           max: 100,
           ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 14 } },
-          pointLabels: { font: { size: 16 } }
+          pointLabels: { font: { size: 14 }, callback: (label) => label }
         }
       },
       plugins: { legend: { display: false } },
