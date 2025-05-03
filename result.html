@@ -1,47 +1,44 @@
-<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8">
   <title>測驗結果</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
-<div class="max-w-4xl mx-auto p-4">
-  <h2 class="text-2xl font-bold text-center mb-6 text-yellow-600">你的測驗結果分析</h2>
-  <p id="basicInfo" class="text-center mb-6 text-gray-700">姓名 / 日期</p>
+  <div class="max-w-4xl mx-auto p-4">
+    <h2 class="text-2xl font-bold text-center mb-6 text-yellow-600">你的測驗結果分析</h2>
+    <p id="basicInfo" class="text-center mb-6 text-gray-700">姓名 / 日期</p>
 
-  <div class="bg-white rounded shadow p-4 mb-4">
-    <canvas id="radarChart" class="mx-auto" width="300" height="300"></canvas>
-  </div>
+    <div class="bg-white rounded shadow p-4 mb-6">
+      <canvas id="radarChart" class="mx-auto" width="300" height="300"></canvas>
+    </div>
 
-  <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
-    <h3 class="text-lg font-bold mb-2">雷達圖整體解說</h3>
-    <div>雷達圖整體解說載入中...</div>
-  </div>
+    <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
+      <h3 class="text-lg font-bold mb-2">雷達圖整體解說</h3>
+      <div>雷達圖整體解說載入中...</div>
+    </div>
 
-  <div id="personaBlock" class="bg-white rounded shadow p-4 mb-4">
-    <h3 class="text-lg font-bold mb-2">主導構面</h3>
-    <div>主導構面敘述載入中...</div>
-  </div>
+    <div id="personaBlock" class="bg-white rounded shadow p-4 mb-4">
+      <h3 class="text-lg font-bold mb-2">主導構面</h3>
+      <div>主導構面敘述載入中...</div>
+    </div>
 
-  <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
-    <h3 class="text-lg font-bold mb-2">低分構面風險建議</h3>
-    <div id="riskContainer">低分構面風險建議載入中...</div>
-  </div>
+    <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
+      <h3 class="text-lg font-bold mb-2">低分構面風險建議</h3>
+      <div id="riskContainer">低分構面風險建議載入中...</div>
+    </div>
 
-  <div id="advBlock" class="bg-white rounded shadow p-4 mb-4">
-    <h3 class="text-lg font-bold mb-2">優勢組合說明</h3>
-    <div>優勢組合說明載入中...</div>
+    <div id="advBlock" class="bg-white rounded shadow p-4 mb-4">
+      <h3 class="text-lg font-bold mb-2">優勢組合說明</h3>
+      <div>優勢組合說明載入中...</div>
+    </div>
   </div>
-</div>
 
 <script>
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4OcYOUR_API_KEY_HERE';
-
-let radarChart;
+const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
 
 fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, {
   headers: {
@@ -56,6 +53,11 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, 
     return;
   }
   const res = data[0];
+  if (!res.scores) {
+    console.error("❌ 資料中沒有 scores 欄位");
+    document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 資料錯誤：缺少 scores 欄位</h3>";
+    return;
+  }
   res.scores = typeof res.scores === 'string' ? JSON.parse(res.scores) : res.scores;
   runAnalysis(res);
 })
@@ -85,12 +87,7 @@ function runAnalysis(res) {
   for (const [dim, idxs] of Object.entries(dimensionMap)) {
     avg[dim] = idxs.reduce((sum, i) => sum + res.scores[i], 0) / idxs.length;
   }
-
-  const percentScores = {};
-  Object.entries(avg).forEach(([k, v]) => {
-    percentScores[k] = Math.round((v - 1) / 2 * 100);
-  });
-
+  const percentScores = Object.fromEntries(Object.entries(avg).map(([k, v]) => [k, Math.round((v - 1) / 2 * 100)]));
   const avgKey = Object.fromEntries(Object.entries(avg).map(([k, v]) => [dimensionKeyMap[k], v]));
   const sorted = Object.entries(avgKey).sort((a, b) => b[1] - a[1]);
   const top = sorted[0][0];
@@ -98,11 +95,10 @@ function runAnalysis(res) {
   const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
   const advKey = high.length ? high.slice(0, 3).sort().join("_") : "general";
 
-  if (radarChart && typeof radarChart.destroy === 'function') radarChart.destroy();
-  radarChart = new Chart(document.getElementById("radarChart"), {
+  new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
-      labels: Object.entries(percentScores).map(([k, v]) => `${k}\n${v}%`),
+      labels: Object.keys(percentScores).map(k => `${k} (${percentScores[k]}%)`),
       datasets: [{
         label: '構面分數 (%)',
         data: Object.values(percentScores),
@@ -117,7 +113,7 @@ function runAnalysis(res) {
           min: 0,
           max: 100,
           ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 14 } },
-          pointLabels: { font: { size: 14 }, callback: (label) => label }
+          pointLabels: { font: { size: 16 } }
         }
       },
       plugins: { legend: { display: false } },
@@ -127,18 +123,18 @@ function runAnalysis(res) {
   });
 
   function fetchInject(id, path) {
-    const block = document.getElementById(id).querySelector('div');
+    const block = document.getElementById(id);
     fetch(path)
       .then(r => r.ok ? r.text() : Promise.reject())
-      .then(t => block.innerHTML = t)
-      .catch(() => block.innerHTML = `❌ 無法載入 ${path}`);
+      .then(t => block.querySelector('div').innerHTML = t)
+      .catch(() => block.querySelector('div').innerHTML = `❌ 無法載入 ${path}`);
   }
 
   fetchInject("radarBlock", `radar_${top}_user.html`);
   fetchInject("personaBlock", `persona_${top}_user.html`);
   fetchInject("advBlock", `strength_${advKey}_high_user.html`);
 
-  const riskDiv = document.getElementById("riskBlock").querySelector('div');
+  const riskDiv = document.getElementById("riskBlock").querySelector('#riskContainer');
   riskDiv.innerHTML = '';
   low.forEach(k => {
     if (k) {
