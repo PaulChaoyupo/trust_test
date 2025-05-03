@@ -138,21 +138,32 @@ function loadLowScores(avg, dimKeyMap) {
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
 
- 
-  const sorted = Object.entries(avg).sort((a,b) => a[1] - b[1]);
+  const sorted = Object.entries(avg).sort((a, b) => a[1] - b[1]);
   const lowLimited = sorted.slice(0, 2).map(([k]) => dimKeyMap[k]);
+
+  console.log("⚠️ 低分構面（英文 key）:", lowLimited);
 
   lowLimited.forEach(k => {
     const div = document.createElement("div");
     riskDiv.appendChild(div);
     const riskKey = `risk_${k}_low.html`;
+    console.log(`⚠️ 嘗試載入: ${riskKey}`);
+
     fetch(riskKey)
-      .then(r => { if (!r.ok) throw new Error(); return r.text(); })
-      .then(h => div.innerHTML = h)
-      .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
+      .then(r => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.text();
+      })
+      .then(h => {
+        div.innerHTML = h;
+        console.log(`✅ 成功載入: ${riskKey}`);
+      })
+      .catch(err => {
+        div.innerHTML = `❌ 無法載入 ${riskKey} (${err.message})`;
+        console.error(`❌ 無法載入 ${riskKey}`, err);
+      });
   });
 }
-
 
 function loadAwareness(user) {
   const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum,i) => sum + user.scores[i],0) / 13;
