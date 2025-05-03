@@ -67,15 +67,26 @@ function showUserData(user) {
     "創意展現": [12,13,14,17,18],
     "工作風格": [3,7,15,16,31,33]
   };
+
+  const dimKeyMap = {
+    "團隊展現": "team",
+    "自我認知": "awareness",
+    "執行能力": "execution",
+    "創意展現": "creativity",
+    "工作風格": "workstyle"
+  };
+
   const avg = Object.fromEntries(Object.entries(dimMap).map(([k, idx]) =>
     [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
   ));
 
   drawRadarChart(avg);
 
-  loadHTML('personaBlock', `persona_${getTopKey(avg)}.html`);
-  loadHTML('advBlock', `strength_${getAdvKey(avg)}_high.html`);
-  loadLowScores(avg);
+  const topKey = getTopKey(avg, dimKeyMap);
+  const advKey = getAdvKey(avg, dimKeyMap);
+  loadHTML('personaBlock', `persona_${topKey}.html`);
+  loadHTML('advBlock', `strength_${advKey}_high.html`);
+  loadLowScores(avg, dimKeyMap);
   loadAwareness(user);
 }
 
@@ -95,13 +106,13 @@ function loadHTML(id, path) {
     .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`);
 }
 
-function loadLowScores(avg) {
+function loadLowScores(avg, dimKeyMap) {
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
   Object.entries(avg).sort((a,b) => a[1]-b[1]).slice(0,2).forEach(([k]) => {
     const div = document.createElement("div");
     riskDiv.appendChild(div);
-    loadHTML(div, `risk_${k}_low.html`);
+    loadHTML(div, `risk_${dimKeyMap[k]}_low.html`);
   });
 }
 
@@ -111,11 +122,12 @@ function loadAwareness(user) {
   loadHTML('awarenessBlock', `awareness_${level}.html`);
 }
 
-function getTopKey(avg) {
-  return Object.entries(avg).sort((a,b) => b[1]-a[1])[0][0];
+function getTopKey(avg, dimKeyMap) {
+  const top = Object.entries(avg).sort((a,b) => b[1]-a[1])[0][0];
+  return dimKeyMap[top];
 }
 
-function getAdvKey(avg) {
-  const high = Object.entries(avg).filter(([_,v]) => v >= 2.6).map(([k]) => k);
-  return high.length ? high.slice(0,3).sort().join('_') : getTopKey(avg);
+function getAdvKey(avg, dimKeyMap) {
+  const high = Object.entries(avg).filter(([_,v]) => v >= 2.6).map(([k]) => dimKeyMap[k]);
+  return high.length ? high.slice(0,3).sort().join('_') : dimKeyMap[getTopKey(avg, dimKeyMap)];
 }
