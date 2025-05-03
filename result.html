@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -15,9 +14,10 @@
   <div id="advBlock">優勢組合說明載入中...</div>
   <div id="riskBlock">低分構面風險建議載入中...</div>
   <div id="radarBlock">雷達圖整體解說載入中...</div>
-  <script>
+
+<script>
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
+const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';  // 改成你的 key
 
 fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, {
   headers: {
@@ -69,44 +69,73 @@ function runAnalysis(res) {
 
   new Chart(document.getElementById("radarChart"), {
     type: 'radar',
-    data: { labels: Object.keys(avg), datasets: [{ label: '構面分數', data: Object.values(avgKey), backgroundColor: 'rgba(33,111,163,0.2)', borderColor: '#2170a3', pointBackgroundColor: '#2170a3' }] },
-    options: { 
-      scales: { 
-        r: { 
-          min:1, 
-          max:3, 
-          ticks:{ stepSize:0.5, font: { size: 14 } },
+    data: {
+      labels: Object.keys(avg),
+      datasets: [{
+        label: '構面分數',
+        data: Object.values(avgKey),
+        backgroundColor: 'rgba(33,111,163,0.2)',
+        borderColor: '#2170a3',
+        pointBackgroundColor: '#2170a3'
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          min: 1,
+          max: 3,
+          ticks: { stepSize: 0.5, font: { size: 14 } },
           pointLabels: { font: { size: 16 } }
         }
-      }, 
-      plugins:{ legend:{ display:false } } 
+      },
+      plugins: { legend: { display: false } }
     }
   });
 
-  function fetchInject(id,path){
+  function fetchInject(id, path, fallback) {
     fetch(path)
-      .then(r=>r.ok?r.text():Promise.reject())
-      .then(t=>document.getElementById(id).innerHTML=t)
-      .catch(()=>document.getElementById(id).innerHTML=`❌ 無法載入 ${path}`);
+      .then(r => r.ok ? r.text() : Promise.reject())
+      .then(t => document.getElementById(id).innerHTML = t)
+      .catch(() => {
+        if (fallback) {
+          fetch(fallback)
+            .then(r2 => r2.ok ? r2.text() : Promise.reject())
+            .then(t2 => document.getElementById(id).innerHTML = t2)
+            .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path} 和 ${fallback}`);
+        } else {
+          document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`;
+        }
+      });
   }
 
-  fetchInject("personaBlock", `persona_${top}_user.html`);
-  fetchInject("advBlock", `strength_${advKey}_high_user.html`);
-  fetchInject("radarBlock", `radar_${top}_user.html`);
+  fetchInject("personaBlock", `persona_${top}_user.html`, 'persona_general_user.html');
+  fetchInject("advBlock", `strength_${advKey}_high_user.html`, 'strength_general_high_user.html');
+  fetchInject("radarBlock", `radar_${top}_user.html`, 'radar_general_user.html');
 
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
-  low.forEach(k=>{
-    if (k) {
-      const div = document.createElement("div");
-      riskDiv.appendChild(div);
-      const riskKey = `risk_${k}_low_user.html`;
-      fetch(riskKey)
-        .then(r=>{ if(!r.ok) throw new Error(); return r.text(); })
-        .then(h=>div.innerHTML=h)
-        .catch(()=>div.innerHTML=`❌ 無法載入 ${riskKey}`);
-    }
-  });
+
+  if (low.length === 0) {
+    const div = document.createElement("div");
+    riskDiv.appendChild(div);
+    const riskKey = `risk_all_high_user.html`;
+    fetch(riskKey)
+      .then(r => r.ok ? r.text() : Promise.reject())
+      .then(h => div.innerHTML = h)
+      .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
+  } else {
+    low.forEach(k => {
+      if (k) {
+        const div = document.createElement("div");
+        riskDiv.appendChild(div);
+        const riskKey = `risk_${k}_low_user.html`;
+        fetch(riskKey)
+          .then(r => r.ok ? r.text() : Promise.reject())
+          .then(h => div.innerHTML = h)
+          .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
+      }
+    });
+  }
 }
 </script>
 </body>
