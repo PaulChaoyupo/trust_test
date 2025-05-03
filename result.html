@@ -45,7 +45,7 @@
 
 <script>
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
+const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';  // 請替換成你的實際 key
 
 fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, {
   headers: {
@@ -102,10 +102,16 @@ function runAnalysis(res) {
   const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
   const advKey = high.length ? high.slice(0, 3).sort().join("_") : "general";
 
+  // 顯示各構面百分比在 radarBlock 區塊最前方
+  const percentText = Object.entries(percentScores).map(([k, v]) => `${k}: ${v}%`).join(' ｜ ');
+  const radarBlockDiv = document.getElementById("radarBlock").querySelector('div');
+  radarBlockDiv.innerHTML = `<p class="mb-2 text-gray-700 text-sm">${percentText}</p>雷達圖整體解說載入中...`;
+
+  // 繪製雷達圖（不顯示 % 在標籤上）
   new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
-      labels: Object.keys(percentScores).map(k => `${k}\n${percentScores[k]}%`),
+      labels: Object.keys(percentScores),
       datasets: [{
         label: '構面分數 (%)',
         data: Object.values(percentScores),
@@ -115,20 +121,14 @@ function runAnalysis(res) {
       }]
     },
     options: {
-  layout: { padding: 50 }, // 加大四周 padding，防止被裁切
-  scales: {
-    r: {
-      min: 0,
-      max: 100,
-      ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 12 } },
-      pointLabels: { font: { size: 14 }, padding: 20 } // 增加 padding
-    }
-  },
-  plugins: { legend: { display: false } },
-  responsive: true,
-  maintainAspectRatio: false
-}
-
+      layout: { padding: 20 },
+      scales: {
+        r: {
+          min: 0,
+          max: 100,
+          ticks: { stepSize: 20, callback: v => `${v}%`, font: { size: 12 } },
+          pointLabels: { font: { size: 14 }, padding: 20 }
+        }
       },
       plugins: { legend: { display: false } },
       responsive: true,
