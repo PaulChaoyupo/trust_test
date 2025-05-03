@@ -1,21 +1,27 @@
-
-<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta charset="UTF-8">
   <title>測驗結果</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
-  <h2>你的測驗結果分析</h2>
-  <p id="basicInfo">姓名 / 日期</p>
-  <canvas id="radarChart" width="250" height="250"></canvas>
-  <div id="personaBlock">主導構面敘述載入中...</div>
-  <div id="advBlock">優勢組合說明載入中...</div>
-  <div id="riskBlock">低分構面風險建議載入中...</div>
-  <div id="radarBlock">雷達圖整體解說載入中...</div>
-  <script>
+<body class="bg-gray-50">
+  <div class="max-w-4xl mx-auto p-4">
+    <h2 class="text-2xl font-bold text-center mb-6 text-yellow-600">你的測驗結果分析</h2>
+    <p id="basicInfo" class="text-center mb-6 text-gray-700">姓名 / 日期</p>
+
+    <div class="bg-white rounded shadow p-4 mb-6">
+      <canvas id="radarChart" class="mx-auto" width="300" height="300"></canvas>
+    </div>
+
+    <div id="personaBlock" class="bg-white rounded shadow p-4 mb-4">主導構面敘述載入中...</div>
+    <div id="advBlock" class="bg-white rounded shadow p-4 mb-4">優勢組合說明載入中...</div>
+    <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">低分構面風險建議載入中...</div>
+    <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">雷達圖整體解說載入中...</div>
+  </div>
+
+<script>
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
 
@@ -28,7 +34,7 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, 
 .then(response => response.json())
 .then(data => {
   if (!data || data.length === 0) {
-    document.body.innerHTML = "<h3 style='color:red'>⚠️ 找不到測驗結果</h3>";
+    document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 找不到測驗結果</h3>";
     return;
   }
   const res = data[0];
@@ -37,7 +43,7 @@ fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, 
 })
 .catch(error => {
   console.error("❌ Supabase 抓資料失敗", error);
-  document.body.innerHTML = "<h3 style='color:red'>⚠️ 無法讀取資料</h3>";
+  document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 無法讀取資料</h3>";
 });
 
 function runAnalysis(res) {
@@ -79,7 +85,9 @@ function runAnalysis(res) {
           pointLabels: { font: { size: 16 } }
         }
       }, 
-      plugins:{ legend:{ display:false } } 
+      plugins:{ legend:{ display:false } },
+      responsive: true,
+      maintainAspectRatio: false
     }
   });
 
@@ -91,7 +99,7 @@ function runAnalysis(res) {
   }
 
   fetchInject("personaBlock", `persona_${top}_user.html`);
-  fetchInject("advBlock", `strength_${advKey}_high_user.html`);
+  fetchInject("advBlock", `strength_${advKey}_high_user.html`); 
   fetchInject("radarBlock", `radar_${top}_user.html`);
   
   const riskDiv = document.getElementById("riskBlock");
@@ -99,6 +107,7 @@ function runAnalysis(res) {
   low.forEach(k=>{
     if (k) {
       const div = document.createElement("div");
+      div.className = "mb-2 p-2 bg-red-100 rounded shadow text-red-700";
       riskDiv.appendChild(div);
       const riskKey = `risk_${k}_low_user.html`;
       fetch(riskKey)
