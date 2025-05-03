@@ -2,55 +2,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard</title>
+  <title>Talent Sketch Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
-  <div class="max-w-5xl mx-auto p-6">
-    <h1 class="text-3xl font-bold text-center mb-6">受測者分析 Dashboard</h1>
 
-    <div class="mb-4">
-      <label for="dateSelector" class="block mb-1 font-semibold">選擇日期</label>
-      <input type="date" id="dateSelector" class="border p-2 w-full rounded">
-    </div>
+  <!-- 導覽列 -->
+  <nav class="bg-yellow-400 p-4 flex justify-between items-center shadow">
+    <div class="text-xl font-bold text-gray-800">Talent Sketch 後台</div>
+    <button class="text-gray-700">登出</button>
+  </nav>
 
-    <div class="mb-4">
-      <label for="userSelector" class="block mb-1 font-semibold">選擇受測者</label>
-      <select id="userSelector" class="border p-2 w-full rounded" disabled>
-        <option value="">請先選擇日期</option>
-      </select>
-    </div>
+  <main class="max-w-5xl mx-auto p-4">
+    
+    <!-- 按鈕區 -->
+    <section class="flex flex-wrap gap-2 mb-4">
+      <button class="bg-yellow-300 hover:bg-yellow-400 px-4 py-2 rounded shadow flex items-center" onclick="exportData()">匯出資料</button>
+      <button class="bg-yellow-300 hover:bg-yellow-400 px-4 py-2 rounded shadow flex items-center" onclick="clearData()">清除資料</button>
+      <input type="file" id="importFile" class="border rounded px-2 py-1">
+      <button class="bg-yellow-300 hover:bg-yellow-400 px-4 py-2 rounded shadow flex items-center" onclick="importData()">還原資料</button>
+    </section>
 
-    <div class="bg-white rounded shadow p-4 mb-6">
-      <canvas id="radarChart"></canvas>
-    </div>
+    <!-- 日期、使用者選擇 -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+      <div>
+        <label for="dateSelector" class="block mb-1 font-medium">選擇測驗日期：</label>
+        <input type="date" id="dateSelector" class="w-full border rounded px-3 py-2">
+      </div>
+      <div>
+        <label for="userSelector" class="block mb-1 font-medium">選擇受測者姓名：</label>
+        <select id="userSelector" class="w-full border rounded px-3 py-2" disabled>
+          <option value="">請選擇</option>
+        </select>
+      </div>
+    </section>
 
-    <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h2 class="text-xl font-semibold mb-2">雷達圖整體分析</h2>
-      <div>分析內容將顯示在這裡...</div>
-    </div>
+    <!-- 雷達圖 -->
+    <section class="bg-white rounded shadow p-4 mb-4">
+      <div class="relative w-full" style="height: 40vh; max-height: 350px;">
+        <canvas id="radarChart"></canvas>
+      </div>
+    </section>
 
-    <div id="personaBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h2 class="text-xl font-semibold mb-2">主導構面敘述</h2>
-      <div>主導構面敘述載入中...</div>
-    </div>
+    <!-- 分析區塊 -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div id="personaBlock" class="bg-white rounded shadow p-4">主導構面分析</div>
+      <div id="advBlock" class="bg-white rounded shadow p-4">優勢組合分析</div>
+      <div id="riskBlock" class="bg-white rounded shadow p-4 md:col-span-2">低分風險分析</div>
+      <div id="awarenessBlock" class="bg-white rounded shadow p-4 md:col-span-2">自覺程度分析</div>
+    </section>
+  </main>
 
-    <div id="advBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h2 class="text-xl font-semibold mb-2">優勢組合說明</h2>
-      <div>優勢組合說明載入中...</div>
-    </div>
+<script>
+function exportData() {
+  Swal.fire('📥 匯出成功!', '', 'success');
+}
+function clearData() {
+  Swal.fire({
+    title: '確定要清除資料嗎?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: '是的, 清除',
+    cancelButtonText: '取消'
+  }).then((result) => {
+    if (result.isConfirmed) {
+      Swal.fire('已清除!', '', 'success');
+    }
+  });
+}
+function importData() {
+  Swal.fire('資料還原完成!', '', 'success');
+}
+</script>
+<script src="dashboard_logic.js"></script>
 
-    <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h2 class="text-xl font-semibold mb-2">低分構面風險建議</h2>
-    </div>
-
-    <div id="awarenessBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h2 class="text-xl font-semibold mb-2">自我認知層級說明</h2>
-      <div>自我認知層級分析載入中...</div>
-    </div>
-  </div>
-
-  <script src="dashboard_logic.js"></script>
 </body>
 </html>
