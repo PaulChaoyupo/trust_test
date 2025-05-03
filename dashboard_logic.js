@@ -137,12 +137,22 @@ function loadHTML(id, path) {
 function loadLowScores(avg, dimKeyMap) {
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
-  Object.entries(avg).sort((a,b) => a[1]-b[1]).slice(0,2).forEach(([k]) => {
+
+ 
+  const sorted = Object.entries(avg).sort((a,b) => a[1] - b[1]);
+  const lowLimited = sorted.slice(0, 2).map(([k]) => dimKeyMap[k]);
+
+  lowLimited.forEach(k => {
     const div = document.createElement("div");
     riskDiv.appendChild(div);
-    loadHTML(div, `risk_${dimKeyMap[k]}_low.html`);
+    const riskKey = `risk_${k}_low.html`;
+    fetch(riskKey)
+      .then(r => { if (!r.ok) throw new Error(); return r.text(); })
+      .then(h => div.innerHTML = h)
+      .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
   });
 }
+
 
 function loadAwareness(user) {
   const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum,i) => sum + user.scores[i],0) / 13;
