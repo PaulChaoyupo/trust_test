@@ -1,51 +1,6 @@
-<!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta charset="UTF-8">
-  <title>測驗結果</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    canvas {
-      max-width: 100%;
-      height: auto !important;
-    }
-  </style>
-</head>
-<body class="bg-gray-50">
-  <div class="max-w-4xl mx-auto p-4">
-    <h2 class="text-2xl font-bold text-center mb-6 text-yellow-600">你的測驗結果分析</h2>
-    <p id="basicInfo" class="text-center mb-6 text-gray-700">姓名 / 日期</p>
-
-    <div class="bg-white rounded shadow p-4 mb-6">
-      <canvas id="radarChart" class="mx-auto"></canvas>
-    </div>
-
-    <div id="radarBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h3 class="text-lg font-bold mb-2">雷達圖整體解說</h3>
-      <div>雷達圖整體解說載入中...</div>
-    </div>
-
-    <div id="personaBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h3 class="text-lg font-bold mb-2">主導構面</h3>
-      <div>主導構面敘述載入中...</div>
-    </div>
-
-    <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h3 class="text-lg font-bold mb-2">低分構面風險建議</h3>
-      <div id="riskContainer">低分構面風險建議載入中...</div>
-    </div>
-
-    <div id="advBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h3 class="text-lg font-bold mb-2">優勢組合說明</h3>
-      <div>優勢組合說明載入中...</div>
-    </div>
-  </div>
-
 <script>
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';  // 請替換成你的實際 key
+const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';  // 替換成你的 key
 
 fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, {
   headers: {
@@ -102,12 +57,9 @@ function runAnalysis(res) {
   const low = sorted.filter(([_, v]) => v < 2.1).map(([k]) => k);
   const advKey = high.length ? high.slice(0, 3).sort().join("_") : "general";
 
-  // 顯示各構面百分比在 radarBlock 區塊最前方
   const percentText = Object.entries(percentScores).map(([k, v]) => `${k}: ${v}%`).join(' ｜ ');
-  const radarBlockDiv = document.getElementById("radarBlock").querySelector('div');
-  radarBlockDiv.innerHTML = `<p class="mb-2 text-gray-700 text-sm">${percentText}</p>雷達圖整體解說載入中...`;
+  document.getElementById("radarBlock").querySelector('div').innerHTML = `<p class="mb-2 text-gray-700 text-sm">${percentText}</p>雷達圖整體解說載入中...`;
 
-  // 繪製雷達圖（不顯示 % 在標籤上）
   new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
@@ -136,45 +88,52 @@ function runAnalysis(res) {
     }
   });
 
-  function fetchInject(id, path) {
+  function fetchInject(id, path, fallback) {
     const block = document.getElementById(id);
     fetch(path)
       .then(r => r.ok ? r.text() : Promise.reject())
       .then(t => block.querySelector('div').innerHTML = t)
-      .catch(() => block.querySelector('div').innerHTML = `❌ 無法載入 ${path}`);
+      .catch(() => {
+        if (fallback) {
+          fetch(fallback)
+            .then(r2 => r2.ok ? r2.text() : Promise.reject())
+            .then(t2 => block.querySelector('div').innerHTML = t2)
+            .catch(() => block.querySelector('div').innerHTML = `❌ 無法載入 ${path} 和 ${fallback}`);
+        } else {
+          block.querySelector('div').innerHTML = `❌ 無法載入 ${path}`;
+        }
+      });
   }
 
-  fetchInject("radarBlock", `radar_${top}_user.html`);
-  fetchInject("personaBlock", `persona_${top}_user.html`);
+  fetchInject("radarBlock", `radar_${top}_user.html`, 'radar_general_user.html');
+  fetchInject("personaBlock", `persona_${top}_user.html`, 'persona_general_user.html');
   fetchInject("advBlock", `strength_${advKey}_high_user.html`, 'strength_general_high_user.html');
 
   const riskDiv = document.getElementById("riskContainer");
-riskDiv.innerHTML = '';
+  riskDiv.innerHTML = '';
 
-if (low.length === 0) {
-  // 沒有低分構面，載入預設說明
-  const div = document.createElement("div");
-  div.className = "mb-2";
-  riskDiv.appendChild(div);
-  const riskKey = `risk_all_high_user.html`;
-  fetch(riskKey)
-    .then(r => r.ok ? r.text() : Promise.reject())
-    .then(h => div.innerHTML = h)
-    .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
-} else {
-  low.forEach(k => {
-    if (k) {
-      const div = document.createElement("div");
-      div.className = "mb-2";
-      riskDiv.appendChild(div);
-      const riskKey = `risk_${k}_low_user.html`;
-      fetch(riskKey)
-        .then(r => r.ok ? r.text() : Promise.reject())
-        .then(h => div.innerHTML = h)
-        .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
-    }
-  });
+  if (low.length === 0) {
+    const div = document.createElement("div");
+    div.className = "mb-2";
+    riskDiv.appendChild(div);
+    const riskKey = `risk_all_high_user.html`;
+    fetch(riskKey)
+      .then(r => r.ok ? r.text() : Promise.reject())
+      .then(h => div.innerHTML = h)
+      .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
+  } else {
+    low.forEach(k => {
+      if (k) {
+        const div = document.createElement("div");
+        div.className = "mb-2";
+        riskDiv.appendChild(div);
+        const riskKey = `risk_${k}_low_user.html`;
+        fetch(riskKey)
+          .then(r => r.ok ? r.text() : Promise.reject())
+          .then(h => div.innerHTML = h)
+          .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
+      }
+    });
+  }
 }
 </script>
-</body>
-</html>
