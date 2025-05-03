@@ -74,29 +74,32 @@
     }
     .likert {
       display: flex;
-      justify-content: space-between;
+      flex-direction: column;
+      gap: 0.6rem;
       margin-top: 0.6rem;
     }
     .likert label {
-      flex: 1;
-      text-align: center;
-      margin: 0 0.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+      font-size: 0.95rem;
     }
     .likert input[type="radio"] {
       display: none;
     }
-    .likert span {
+    .likert span.circle {
       display: inline-block;
       width: 36px;
       height: 36px;
       line-height: 36px;
       background: #e0e0e0;
       border-radius: 50%;
-      cursor: pointer;
+      text-align: center;
       font-size: 0.9rem;
       transition: background 0.3s, transform 0.2s;
     }
-    .likert input[type="radio"]:checked + span {
+    .likert input[type="radio"]:checked + span.circle {
       background: #457b9d;
       color: #fff;
       transform: scale(1.1);
@@ -148,7 +151,8 @@
               ${q.options.map((opt, j) => `
                 <label>
                   <input type="radio" name="q${i}" value="${j+1}" onchange="scrollToNext(${i})">
-                  <span>${j+1}</span>
+                  <span class="circle">${j+1}</span>
+                  <span>${opt}</span>
                 </label>
               `).join('')}
             </div>`;
