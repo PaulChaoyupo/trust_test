@@ -138,15 +138,21 @@ function loadLowScores(avg, dimKeyMap) {
   const riskDiv = document.getElementById("riskBlock");
   riskDiv.innerHTML = '';
 
-  const sorted = Object.entries(avg).sort((a, b) => a[1] - b[1]);
-  const lowLimited = sorted.slice(0, 2).map(([k]) => dimKeyMap[k]);
+  const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
+  const minScore = entries[0][1];
 
-  console.log("⚠️ 低分構面（英文 key）:", lowLimited);
+  // 選出所有等於最低分的構面，最多顯示 3 個
+  const lowItems = entries.filter(([_, v]) => v === minScore)
+                          .slice(0, 3)
+                          .map(([k]) => dimKeyMap[k]);
 
-  lowLimited.forEach(k => {
+  console.log("⚠️ 最低分構面（含同分）:", lowItems);
+
+  lowItems.forEach(k => {
     const div = document.createElement("div");
     riskDiv.appendChild(div);
-    const riskKey = `risk_${k}_low.html`;
+    const riskKey = `./risk_${k}_low.html`; // 注意相對路徑，適用 GitHub Pages
+
     console.log(`⚠️ 嘗試載入: ${riskKey}`);
 
     fetch(riskKey)
@@ -164,6 +170,7 @@ function loadLowScores(avg, dimKeyMap) {
       });
   });
 }
+
 
 function loadAwareness(user) {
   const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum,i) => sum + user.scores[i],0) / 13;
