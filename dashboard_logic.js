@@ -65,7 +65,6 @@ function showUserData(user) {
     "創意展現": [12,13,14,17,18],
     "工作風格": [3,7,15,16,31,33]
   };
-
   const dimKeyMap = {
     "團隊展現": "team",
     "自我認知": "awareness",
@@ -78,56 +77,34 @@ function showUserData(user) {
     [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
   ));
 
+  const top2 = Object.entries(avg).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => k);
+  const lowest = Object.entries(avg).sort((a, b) => a[1] - b[1])[0][0];
+
+  const maxScore = Math.max(...Object.values(avg));
+  const minScore = Math.min(...Object.values(avg));
+  const variance = maxScore - minScore;
+  const varianceType = variance < 0.5 ? '均衡型' : variance < 1.0 ? '偏向型' : '極端型';
+
   const awarenessAvg = avg["自我認知"];
-  const teamAvg = avg["團隊展現"];
-  const execAvg = avg["執行能力"];
-  const creativityAvg = avg["創意展現"];
-  const workstyleAvg = avg["工作風格"];
-
-  const teamExecRatio = (teamAvg / execAvg).toFixed(2);
-  const creativityExecRatio = (creativityAvg / execAvg).toFixed(2);
-
-  let interactionSummary = `團隊/執行比值: ${teamExecRatio} ｜ 創意/執行比值: ${creativityExecRatio}`;
-
-  const highDims = Object.entries(avg).filter(([_, v]) => v >= 2.6).map(([k]) => k);
-  const lowDims = Object.entries(avg).filter(([_, v]) => v < 2.1).map(([k]) => k);
-
-  if (highDims.length && lowDims.length) {
-    interactionSummary += ` ｜ 高分: ${highDims.join(", ")} ｜ 低分: ${lowDims.join(", ")}`;
-  }
-
   const awarenessLevel =
     awarenessAvg < 1.8 ? '極低' :
     awarenessAvg < 2.1 ? '低' :
     awarenessAvg < 2.6 ? '中' :
-    awarenessAvg < 2.9 ? '高' :
-    '極高';
+    awarenessAvg < 2.9 ? '高' : '極高';
 
-  interactionSummary += ` ｜ 自我認知層級: ${awarenessLevel}`;
-
-  let comboLabel = '';
-  if (highDims.length === 0 && lowDims.length === 0) {
-    comboLabel = '多面向均衡型';
-  } else if (highDims.length >= 2 && lowDims.length >= 1) {
-    comboLabel = '多強多弱型';
-  } else if (highDims.length === 1 && lowDims.length === 0) {
-    comboLabel = '單一優勢型';
-  } else {
-    comboLabel = '混合型';
-  }
-  interactionSummary += ` ｜ 分析類型: ${comboLabel}`;
-
-  const radarBlock = document.getElementById('radarBlock').querySelector('div');
-  radarBlock.innerHTML = `<p class="mb-2 text-gray-700">${interactionSummary}</p>` + radarBlock.innerHTML;
+  let summary = `高分構面: ${top2.join(", ")} ｜ 低分構面: ${lowest} ｜ 自覺層級: ${awarenessLevel} ｜ 分布分類: ${varianceType}`;
+  console.log(summary);
 
   drawRadarChart(avg);
 
-  const topKey = dimKeyMap[getTopKey(avg)];
-  const advKey = getAdvKey(avg, dimKeyMap);
-  loadHTML('personaBlock', `persona_${topKey}.html`);
-  loadHTML('advBlock', `strength_${advKey}_high.html`);
-  loadLowScores(avg, dimKeyMap);
-  loadAwareness(user);
+  // 載入高分構面敘述
+  loadHTML('personaBlock', `persona_${dimKeyMap[top2[0]]}_${dimKeyMap[top2[1]]}_high_user.html`);
+  // 載入低分構面敘述
+  loadHTML('riskBlock', `risk_${dimKeyMap[lowest]}_low_user.html`);
+  // 載入自覺層級敘述
+  loadHTML('awarenessBlock', `awareness_${awarenessLevel}.html`);
+  // 載入分布分類敘述
+  loadHTML('advBlock', `distribution_${varianceType}.html`);
 }
 
 function drawRadarChart(avg) {
@@ -166,41 +143,4 @@ function loadHTML(id, path) {
     .then(r => r.ok ? r.text() : Promise.reject())
     .then(t => document.getElementById(id).innerHTML = t)
     .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`);
-}
-
-function loadLowScores(avg, dimKeyMap) {
-  const riskDiv = document.getElementById("riskBlock");
-  riskDiv.innerHTML = '';
-  const importanceOrder = ["自我認知", "團隊展現", "執行能力", "創意展現", "工作風格"];
-  const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
-  const lowCandidates = entries.slice(0, 4).map(([k]) => k);
-  const sortedByImportance = importanceOrder.filter(k => lowCandidates.includes(k)).slice(0, 2);
-
-  sortedByImportance.forEach(k => {
-    const div = document.createElement("div");
-    riskDiv.appendChild(div);
-    const riskKey = `./risk_${dimKeyMap[k]}_low.html`;
-    fetch(riskKey)
-      .then(r => r.ok ? r.text() : Promise.reject())
-      .then(h => div.innerHTML = h)
-      .catch(err => div.innerHTML = `❌ 無法載入 ${riskKey} (${err.message})`);
-  });
-}
-
-function loadAwareness(user) {
-  const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum,i) => sum + user.scores[i],0) / 13;
-  const level = awarenessAvg < 1.8 ? 'extremely_low' :
-    awarenessAvg < 2.1 ? 'low' :
-    awarenessAvg < 2.6 ? 'medium' :
-    awarenessAvg < 2.9 ? 'high' : 'extremely_high';
-  loadHTML('awarenessBlock', `awareness_${level}.html`);
-}
-
-function getTopKey(avg) {
-  return Object.entries(avg).sort((a, b) => b[1] - a[1])[0][0];
-}
-
-function getAdvKey(avg, dimKeyMap) {
-  const high = Object.entries(avg).filter(([_, v]) => v >= 2.6).map(([k]) => dimKeyMap[k]);
-  return high.length ? high.slice(0, 3).sort().join('_') : dimKeyMap[getTopKey(avg)];
 }
