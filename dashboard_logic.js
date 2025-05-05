@@ -73,14 +73,12 @@ function showUserData(user) {
     "工作風格": "workstyle"
   };
 
-  // 平均題數計算
   const allCounts = Object.values(dimMap).map(arr => arr.length);
   const avgCount = allCounts.reduce((sum, c) => sum + c, 0) / allCounts.length;
 
   const weightedScores = {};
   let maxScore = 0;
 
-  // 計算補正分數
   for (const [dim, idxs] of Object.entries(dimMap)) {
     const rawAvg = idxs.reduce((sum, i) => sum + user.scores[i], 0) / idxs.length;
     const weighted = rawAvg * (avgCount / idxs.length);
@@ -88,14 +86,12 @@ function showUserData(user) {
     if (weighted > maxScore) maxScore = weighted;
   }
 
-  // 標準化百分比
   const percentData = Object.values(weightedScores).map(w => Math.round((w / maxScore) * 100));
   const percentMap = {};
   Object.keys(dimMap).forEach((dim, i) => percentMap[dimKeyMap[dim]] = percentData[i]);
 
   drawRadarChart(Object.keys(weightedScores), percentData);
 
-  // 排序找高、次高、低
   const sortedDims = Object.entries(weightedScores).sort((a, b) => b[1] - a[1]);
   const highDim = dimKeyMap[sortedDims[0][0]];
   const midDim = dimKeyMap[sortedDims[1][0]];
@@ -155,10 +151,7 @@ async function loadDimensionSection(dim, section, blockId) {
     tempDiv.innerHTML = html;
     const sectionContent = tempDiv.querySelector(`#${dim}-${section}`);
     document.getElementById(blockId).innerHTML = sectionContent 
-      ? `
-        <h3>${dim}-${section} <span>${percent}%</span></h3>
-        <div>${sectionContent.innerHTML}</div>
-      `
+      ? `<h3>${dim}-${section} <span>${percent}%</span></h3><div>${sectionContent.innerHTML}</div>`
       : `❌ ${dim}-${section} 未找到`;
   } catch {
     document.getElementById(blockId).innerHTML = `❌ 無法載入 ${path}`;
