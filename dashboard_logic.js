@@ -21,7 +21,6 @@ function fetchData() {
 function initSelectors(data) {
   const dateInput = document.getElementById("dateSelector");
   const userSelector = document.getElementById("userSelector");
-
   userSelector.filteredUsers = [];
 
   dateInput.addEventListener('change', () => updateUserSelector(data, dateInput.value));
@@ -73,31 +72,34 @@ async function showUserData(user) {
     "工作風格": "workstyle"
   };
 
-  // 計算每個構面的平均題數
   const allCounts = Object.values(dimMap).map(idx => idx.length);
   const avgCount = allCounts.reduce((sum, c) => sum + c, 0) / allCounts.length;
 
-  // 計算每個構面的加權分數
-  const avg = {};
+  const weightedAvg = {};
+  const percentData = [];
+
   for (const [k, idx] of Object.entries(dimMap)) {
     const rawAvg = idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length;
     const weighted = rawAvg * (avgCount / idx.length);
-    avg[k] = weighted;
+    const maxWeighted = 5 * (avgCount / idx.length);
+    const percent = Math.min(Math.round((weighted / maxWeighted) * 100), 100);
+    weightedAvg[k] = weighted;
+    percentData.push(percent);
   }
 
-  const sortedDims = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+  const sortedDims = Object.entries(weightedAvg).sort((a, b) => b[1] - a[1]);
   const highDim = dimKeyMap[sortedDims[0][0]];
   const midDim = dimKeyMap[sortedDims[1][0]];
   const lowDim = dimKeyMap[sortedDims[4][0]];
 
-  const awarenessAvg = avg["自我認知"];
+  const awarenessAvg = weightedAvg["自我認知"];
   const awarenessLevel =
     awarenessAvg < 1.8 ? 'low' :
     awarenessAvg < 2.6 ? 'medium' : 'high';
 
   console.log(`最高: ${highDim}, 次高: ${midDim}, 最低: ${lowDim}, 自覺: ${awarenessLevel}`);
 
-  drawRadarChart(avg);
+  drawRadarChart(Object.keys(weightedAvg), percentData);
 
   await loadDimensionSection(highDim, 'high', 'highBlock');
   await loadDimensionSection(midDim, 'second', 'midBlock');
@@ -105,13 +107,12 @@ async function showUserData(user) {
   loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${highDim}_${midDim}.html`);
 }
 
-function drawRadarChart(avg) {
+function drawRadarChart(labels, percentData) {
   if (radarChart) radarChart.destroy();
-  const percentData = Object.values(avg).map(v => Math.round((v - 1) / 2 * 100));
   radarChart = new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
-      labels: Object.keys(avg),
+      labels,
       datasets: [{
         label: '構面分數 (%)',
         data: percentData,
