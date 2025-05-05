@@ -77,34 +77,24 @@ function showUserData(user) {
     [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
   ));
 
-  const top2 = Object.entries(avg).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => k);
-  const lowest = Object.entries(avg).sort((a, b) => a[1] - b[1])[0][0];
-
-  const maxScore = Math.max(...Object.values(avg));
-  const minScore = Math.min(...Object.values(avg));
-  const variance = maxScore - minScore;
-  const varianceType = variance < 0.5 ? '均衡型' : variance < 1.0 ? '偏向型' : '極端型';
+  const sortedDims = Object.entries(avg).sort((a, b) => b[1] - a[1]);
+  const lowest = sortedDims[0][0];
+  const mid = sortedDims[2][0];
+  const highest = sortedDims[4][0];
 
   const awarenessAvg = avg["自我認知"];
-  const awarenessLevel =
-    awarenessAvg < 1.8 ? '極低' :
-    awarenessAvg < 2.1 ? '低' :
-    awarenessAvg < 2.6 ? '中' :
-    awarenessAvg < 2.9 ? '高' : '極高';
+  const awarenessLevel = 
+    awarenessAvg < 1.8 ? 'low' :
+    awarenessAvg < 2.6 ? 'medium' : 'high';
 
-  let summary = `高分構面: ${top2.join(", ")} ｜ 低分構面: ${lowest} ｜ 自覺層級: ${awarenessLevel} ｜ 分布分類: ${varianceType}`;
-  console.log(summary);
+  console.log(`最高: ${highest}, 次高: ${mid}, 最低: ${lowest}, 自覺: ${awarenessLevel}`);
 
   drawRadarChart(avg);
 
-  // 載入高分構面敘述
-  loadHTML('personaBlock', `persona_${dimKeyMap[top2[0]]}_${dimKeyMap[top2[1]]}_high_user.html`);
-  // 載入低分構面敘述
-  loadHTML('riskBlock', `risk_${dimKeyMap[lowest]}_low_user.html`);
-  // 載入自覺層級敘述
-  loadHTML('awarenessBlock', `awareness_${awarenessLevel}.html`);
-  // 載入分布分類敘述
-  loadHTML('advBlock', `distribution_${varianceType}.html`);
+  loadHTML('highBlock', `persona_${dimKeyMap[highest]}_high_hr.html`);
+  loadHTML('midBlock', `persona_${dimKeyMap[mid]}_medium_hr.html`);
+  loadHTML('lowBlock', `persona_${dimKeyMap[lowest]}_low_hr.html`);
+  loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${dimKeyMap[highest]}_${dimKeyMap[mid]}.html`);
 }
 
 function drawRadarChart(avg) {
