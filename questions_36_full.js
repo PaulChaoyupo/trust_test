@@ -1,3 +1,4 @@
+// 題目清單
 const questions = [
   // Team (團隊展現)
   { id: 1, dimension: "team", type: "self", text: "當工作中出現分歧時，我通常會主動協調彼此的意見。" },
@@ -53,4 +54,6 @@ const options = [
   { value: 6, label: "非常同意" }
 ];
 
-export { questions, options };
+// 確保與 test.html 相容（用全域變數，不用 export）
+window.questions = questions;
+window.options = options;
