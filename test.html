@@ -11,7 +11,7 @@
       font-family: 'Noto Sans TC', sans-serif;
       background: #f9f9f9;
       margin: 0 auto;
-      padding: 2rem 1rem 3rem;  /* 多留空間避免被底部進度條擋住 */
+      padding: 2rem 1rem 3rem;
       max-width: 960px;
       color: #333;
     }
@@ -149,20 +149,21 @@
 
     window.addEventListener("DOMContentLoaded", () => {
       try {
-        if (!Array.isArray(questions)) throw new Error("questions 題庫未載入");
+        if (!Array.isArray(window.questions)) throw new Error("questions 題庫未載入");
+        if (!Array.isArray(window.options)) throw new Error("options 選項未載入");
 
         const form = document.getElementById("testForm");
-        questions.forEach((q, i) => {
+        window.questions.forEach((q, i) => {
           const div = document.createElement("div");
           div.className = "question";
           div.id = "q" + i;
-          div.innerHTML = `<strong>${q.title}</strong>
+          div.innerHTML = `<strong>${q.text}</strong>
             <div class="likert">
-              ${q.options.map((opt, j) => `
+              ${window.options.map(opt => `
                 <label>
-                  <input type="radio" name="q${i}" value="${j+1}" onchange="scrollToNext(${i})">
-                  <span class="circle">${j+1}</span>
-                  <span>${opt}</span>
+                  <input type="radio" name="q${i}" value="${opt.value}" onchange="scrollToNext(${i})">
+                  <span class="circle">${opt.value}</span>
+                  <span>${opt.label}</span>
                 </label>
               `).join('')}
             </div>`;
@@ -182,7 +183,7 @@
     }
 
     function updateProgress() {
-      const total = questions.length;
+      const total = window.questions.length;
       const answered = document.querySelectorAll(".question.answered").length;
       const percent = Math.round((answered / total) * 100);
       const progressFill = document.getElementById("progressFill");
@@ -196,7 +197,7 @@
       if (!name || !date) return alert("請填寫姓名與日期");
 
       const scores = [];
-      for (let i = 0; i < questions.length; i++) {
+      for (let i = 0; i < window.questions.length; i++) {
         const val = document.querySelector("input[name='q" + i + "']:checked");
         if (!val) return alert("第 " + (i + 1) + " 題尚未作答");
         scores.push(parseInt(val.value));
