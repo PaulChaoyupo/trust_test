@@ -73,9 +73,17 @@ async function showUserData(user) {
     "工作風格": "workstyle"
   };
 
-  const avg = Object.fromEntries(Object.entries(dimMap).map(([k, idx]) =>
-    [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
-  ));
+  // 計算每個構面的平均題數
+  const allCounts = Object.values(dimMap).map(idx => idx.length);
+  const avgCount = allCounts.reduce((sum, c) => sum + c, 0) / allCounts.length;
+
+  // 計算每個構面的加權分數
+  const avg = {};
+  for (const [k, idx] of Object.entries(dimMap)) {
+    const rawAvg = idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length;
+    const weighted = rawAvg * (avgCount / idx.length);
+    avg[k] = weighted;
+  }
 
   const sortedDims = Object.entries(avg).sort((a, b) => b[1] - a[1]);
   const highDim = dimKeyMap[sortedDims[0][0]];
