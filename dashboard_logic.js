@@ -55,32 +55,34 @@ function showUserData(user) {
   }
 
   const dimMap = {
-    "團隊展現": [0,1,32],
-    "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
-    "執行能力": [4,5,19,20,21],
-    "創意展現": [12,13,14,17,18],
-    "工作風格": [3,7,15,16,31,33],
-    "consistency": [26,27,28,29,30,31]
+    "團隊展現": [0,1,2,3,4],
+    "執行能力": [5,6,7,8,9],
+    "創意展現": [10,11,12,13,14],
+    "工作風格": [15,16,17,18,19],
+    "自我認知": [20,21,22,23,24],
+    "consistency": [25,26,27,28,29,30]
   };
 
   const dimKeyMap = {
     "團隊展現": "team",
-    "自我認知": "awareness",
     "執行能力": "execution",
     "創意展現": "creativity",
-    "工作風格": "workstyle"
+    "工作風格": "workstyle",
+    "自我認知": "awareness"
   };
 
-  const allCounts = Object.values(dimMap).map(arr => arr.length);
+  const allCounts = Object.values(dimMap)
+    .filter((_, key) => key !== 'consistency')
+    .map(arr => arr.length);
   const avgCount = allCounts.reduce((sum, c) => sum + c, 0) / allCounts.length;
 
   const weightedScores = {};
   const MAX_SCORE = 6;
-
+  
   for (const [dim, idxs] of Object.entries(dimMap)) {
     if (dim === 'consistency') continue;
-    const rawAvg = idxs.reduce((sum, i) => sum + user.scores[i], 0) / idxs.length;
-    const weighted = rawAvg * (avgCount / idxs.length);
+    const avg = idxs.reduce((sum, i) => sum + user.scores[i], 0) / idxs.length;
+    const weighted = avg * (avgCount / idxs.length);
     weightedScores[dim] = weighted;
   }
 
@@ -97,8 +99,8 @@ function showUserData(user) {
   const midDim = dimKeyMap[sortedDims[1][0]];
   const lowDim = dimKeyMap[sortedDims[sortedDims.length - 1][0]];
 
-  const selfIdxs = dimMap['自我認知'].filter(i => [2,6,8,9,10,11].includes(i));
-  const otherIdxs = dimMap['自我認知'].filter(i => [26,27,28,29,30,32,34].includes(i));
+  const selfIdxs = dimMap['自我認知'].slice(0,3);
+  const otherIdxs = dimMap['自我認知'].slice(3,5);
   const selfAvg = selfIdxs.reduce((sum, i) => sum + user.scores[i], 0) / selfIdxs.length;
   const otherAvg = otherIdxs.reduce((sum, i) => sum + user.scores[i], 0) / otherIdxs.length;
   const awarenessGap = Math.abs(selfAvg - otherAvg);
