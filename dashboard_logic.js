@@ -97,7 +97,13 @@ async function showUserData(user) {
     awarenessAvg < 1.8 ? 'low' :
     awarenessAvg < 2.6 ? 'medium' : 'high';
 
-  console.log(`最高: ${highDim}, 次高: ${midDim}, 最低: ${lowDim}, 自覺: ${awarenessLevel}`);
+  window.chartPercentages = {
+    team: percentData[0],
+    awareness: percentData[1],
+    execution: percentData[2],
+    creativity: percentData[3],
+    workstyle: percentData[4]
+  };
 
   drawRadarChart(Object.keys(weightedAvg), percentData);
 
@@ -137,15 +143,30 @@ function drawRadarChart(labels, percentData) {
   });
 }
 
+function getProgressColor(percent) {
+  if (percent <= 40) return '#e74c3c'; // 紅
+  if (percent <= 70) return '#f1c40f'; // 黃
+  return '#2ecc71';                   // 綠
+}
+
 async function loadDimensionSection(dim, section, blockId) {
   const path = `${dim}.html`;
+  const percent = window.chartPercentages ? window.chartPercentages[dim] || 0 : 0;
   try {
     const res = await fetch(path);
     const html = await res.text();
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     const sectionContent = tempDiv.querySelector(`#${dim}-${section}`);
-    document.getElementById(blockId).innerHTML = sectionContent ? sectionContent.innerHTML : `❌ ${dim}-${section} 未找到`;
+    document.getElementById(blockId).innerHTML = sectionContent 
+      ? `
+        <h3>${dim}-${section} <span class="tooltip" data-tooltip="詳細解釋：${dim}-${section}">${percent}%</span></h3>
+        <div class="progress-bar">
+          <div class="progress-fill" style="width: ${percent}%; background: ${getProgressColor(percent)};"></div>
+        </div>
+        <div>${sectionContent.innerHTML}</div>
+      `
+      : `❌ ${dim}-${section} 未找到`;
   } catch {
     document.getElementById(blockId).innerHTML = `❌ 無法載入 ${path}`;
   }
@@ -154,6 +175,6 @@ async function loadDimensionSection(dim, section, blockId) {
 function loadHTML(id, path) {
   fetch(path)
     .then(r => r.ok ? r.text() : Promise.reject())
-    .then(t => document.getElementById(id).innerHTML = t)
+    .then(t => document.getElementById(id).innerHTML = `<div class="awareness-box">${t}</div>`)
     .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`);
 }
