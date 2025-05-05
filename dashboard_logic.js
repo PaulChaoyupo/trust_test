@@ -8,10 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 function fetchData() {
   fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
-    headers: {
-      'apikey': SUPABASE_API_KEY,
-      'Authorization': `Bearer ${SUPABASE_API_KEY}`
-    }
+    headers: { 'apikey': SUPABASE_API_KEY, 'Authorization': `Bearer ${SUPABASE_API_KEY}` }
   })
     .then(res => res.json())
     .then(data => initSelectors(data))
@@ -62,7 +59,8 @@ function showUserData(user) {
     "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
     "執行能力": [4,5,19,20,21],
     "創意展現": [12,13,14,17,18],
-    "工作風格": [3,7,15,16,31,33]
+    "工作風格": [3,7,15,16,31,33],
+    "consistency": [26,27,28,29,30,31]
   };
 
   const dimKeyMap = {
@@ -77,30 +75,38 @@ function showUserData(user) {
   const avgCount = allCounts.reduce((sum, c) => sum + c, 0) / allCounts.length;
 
   const weightedScores = {};
-  let maxScore = 0;
+  const MAX_SCORE = 6;
 
   for (const [dim, idxs] of Object.entries(dimMap)) {
+    if (dim === 'consistency') continue;
     const rawAvg = idxs.reduce((sum, i) => sum + user.scores[i], 0) / idxs.length;
     const weighted = rawAvg * (avgCount / idxs.length);
     weightedScores[dim] = weighted;
-    if (weighted > maxScore) maxScore = weighted;
   }
 
-  const percentData = Object.values(weightedScores).map(w => Math.round((w / maxScore) * 100));
+  const percentData = Object.values(weightedScores).map(w => Math.round((w / MAX_SCORE) * 100));
   const percentMap = {};
-  Object.keys(dimMap).forEach((dim, i) => percentMap[dimKeyMap[dim]] = percentData[i]);
+  Object.keys(dimMap).forEach((dim, i) => {
+    if (dim !== 'consistency') percentMap[dimKeyMap[dim]] = percentData[i];
+  });
 
   drawRadarChart(Object.keys(weightedScores), percentData);
 
   const sortedDims = Object.entries(weightedScores).sort((a, b) => b[1] - a[1]);
   const highDim = dimKeyMap[sortedDims[0][0]];
   const midDim = dimKeyMap[sortedDims[1][0]];
-  const lowDim = dimKeyMap[sortedDims[4][0]];
+  const lowDim = dimKeyMap[sortedDims[sortedDims.length - 1][0]];
 
-  const awarenessAvg = weightedScores["自我認知"];
-  const awarenessLevel =
-    awarenessAvg < 1.8 ? 'low' :
-    awarenessAvg < 2.6 ? 'medium' : 'high';
+  const selfIdxs = dimMap['自我認知'].filter(i => [2,6,8,9,10,11].includes(i));
+  const otherIdxs = dimMap['自我認知'].filter(i => [26,27,28,29,30,32,34].includes(i));
+  const selfAvg = selfIdxs.reduce((sum, i) => sum + user.scores[i], 0) / selfIdxs.length;
+  const otherAvg = otherIdxs.reduce((sum, i) => sum + user.scores[i], 0) / otherIdxs.length;
+  const awarenessGap = Math.abs(selfAvg - otherAvg);
+  const awarenessLevel = awarenessGap < 0.5 ? 'high' : (awarenessGap < 1 ? 'medium' : 'low');
+
+  const consistencyIdxs = dimMap['consistency'];
+  const consistencyAvg = consistencyIdxs.reduce((sum, i) => sum + user.scores[i], 0) / consistencyIdxs.length;
+  const suspicious = consistencyAvg > 4.5;
 
   window.chartPercentages = percentMap;
   document.getElementById('radarChart').chartData = percentMap;
@@ -109,6 +115,10 @@ function showUserData(user) {
   loadDimensionSection(midDim, 'second', 'midBlock');
   loadDimensionSection(lowDim, 'low', 'lowBlock');
   loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${highDim}_${midDim}.html`);
+
+  if (suspicious) {
+    document.getElementById('awarenessBlock').innerHTML += `<div style="color:red; font-weight:bold;">⚠️ 注意：填答一致性偏高，請小心解讀結果</div>`;
+  }
 }
 
 function drawRadarChart(labels, percentData) {
