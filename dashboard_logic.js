@@ -48,7 +48,7 @@ function updateUserSelector(data, selectedDate) {
   });
 }
 
-function showUserData(user) {
+async function showUserData(user) {
   if (!user) return;
 
   try {
@@ -78,23 +78,23 @@ function showUserData(user) {
   ));
 
   const sortedDims = Object.entries(avg).sort((a, b) => b[1] - a[1]);
-  const lowest = sortedDims[0][0];
-  const mid = sortedDims[2][0];
-  const highest = sortedDims[4][0];
+  const highDim = dimKeyMap[sortedDims[0][0]];
+  const midDim = dimKeyMap[sortedDims[1][0]];
+  const lowDim = dimKeyMap[sortedDims[4][0]];
 
   const awarenessAvg = avg["自我認知"];
-  const awarenessLevel = 
+  const awarenessLevel =
     awarenessAvg < 1.8 ? 'low' :
     awarenessAvg < 2.6 ? 'medium' : 'high';
 
-  console.log(`最高: ${highest}, 次高: ${mid}, 最低: ${lowest}, 自覺: ${awarenessLevel}`);
+  console.log(`最高: ${highDim}, 次高: ${midDim}, 最低: ${lowDim}, 自覺: ${awarenessLevel}`);
 
   drawRadarChart(avg);
 
-  loadHTML('highBlock', `persona_${dimKeyMap[highest]}_high_hr.html`);
-  loadHTML('midBlock', `persona_${dimKeyMap[mid]}_medium_hr.html`);
-  loadHTML('lowBlock', `persona_${dimKeyMap[lowest]}_low_hr.html`);
-  loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${dimKeyMap[highest]}_${dimKeyMap[mid]}.html`);
+  await loadDimensionSection(highDim, 'high', 'highBlock');
+  await loadDimensionSection(midDim, 'second', 'midBlock');
+  await loadDimensionSection(lowDim, 'low', 'lowBlock');
+  loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${highDim}_${midDim}.html`);
 }
 
 function drawRadarChart(avg) {
@@ -126,6 +126,20 @@ function drawRadarChart(avg) {
       maintainAspectRatio: false
     }
   });
+}
+
+async function loadDimensionSection(dim, section, blockId) {
+  const path = `${dim}.html`;
+  try {
+    const res = await fetch(path);
+    const html = await res.text();
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const sectionContent = tempDiv.querySelector(`#${dim}-${section}`);
+    document.getElementById(blockId).innerHTML = sectionContent ? sectionContent.innerHTML : `❌ ${dim}-${section} 未找到`;
+  } catch {
+    document.getElementById(blockId).innerHTML = `❌ 無法載入 ${path}`;
+  }
 }
 
 function loadHTML(id, path) {
