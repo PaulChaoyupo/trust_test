@@ -21,7 +21,6 @@ function fetchData() {
 function initSelectors(data) {
   const dateInput = document.getElementById("dateSelector");
   const userSelector = document.getElementById("userSelector");
-
   userSelector.filteredUsers = [];
 
   dateInput.addEventListener('change', () => updateUserSelector(data, dateInput.value));
@@ -74,69 +73,54 @@ function showUserData(user) {
     "工作風格": "workstyle"
   };
 
-  const avg = Object.fromEntries(Object.entries(dimMap).map(([k, idx]) =>
-    [k, idx.reduce((sum, i) => sum + user.scores[i], 0) / idx.length]
-  ));
+  // 平均題數計算
+  const allCounts = Object.values(dimMap).map(arr => arr.length);
+  const avgCount = allCounts.reduce((sum, c) => sum + c, 0) / allCounts.length;
 
-  const awarenessAvg = avg["自我認知"];
-  const teamAvg = avg["團隊展現"];
-  const execAvg = avg["執行能力"];
-  const creativityAvg = avg["創意展現"];
-  const workstyleAvg = avg["工作風格"];
+  const weightedScores = {};
+  let maxScore = 0;
 
-  const teamExecRatio = (teamAvg / execAvg).toFixed(2);
-  const creativityExecRatio = (creativityAvg / execAvg).toFixed(2);
-
-  let interactionSummary = `團隊/執行比值: ${teamExecRatio} ｜ 創意/執行比值: ${creativityExecRatio}`;
-
-  const highDims = Object.entries(avg).filter(([_, v]) => v >= 2.6).map(([k]) => k);
-  const lowDims = Object.entries(avg).filter(([_, v]) => v < 2.1).map(([k]) => k);
-
-  if (highDims.length && lowDims.length) {
-    interactionSummary += ` ｜ 高分: ${highDims.join(", ")} ｜ 低分: ${lowDims.join(", ")}`;
+  // 計算補正分數
+  for (const [dim, idxs] of Object.entries(dimMap)) {
+    const rawAvg = idxs.reduce((sum, i) => sum + user.scores[i], 0) / idxs.length;
+    const weighted = rawAvg * (avgCount / idxs.length);
+    weightedScores[dim] = weighted;
+    if (weighted > maxScore) maxScore = weighted;
   }
 
+  // 標準化百分比
+  const percentData = Object.values(weightedScores).map(w => Math.round((w / maxScore) * 100));
+  const percentMap = {};
+  Object.keys(dimMap).forEach((dim, i) => percentMap[dimKeyMap[dim]] = percentData[i]);
+
+  drawRadarChart(Object.keys(weightedScores), percentData);
+
+  // 排序找高、次高、低
+  const sortedDims = Object.entries(weightedScores).sort((a, b) => b[1] - a[1]);
+  const highDim = dimKeyMap[sortedDims[0][0]];
+  const midDim = dimKeyMap[sortedDims[1][0]];
+  const lowDim = dimKeyMap[sortedDims[4][0]];
+
+  const awarenessAvg = weightedScores["自我認知"];
   const awarenessLevel =
-    awarenessAvg < 1.8 ? '極低' :
-    awarenessAvg < 2.1 ? '低' :
-    awarenessAvg < 2.6 ? '中' :
-    awarenessAvg < 2.9 ? '高' :
-    '極高';
+    awarenessAvg < 1.8 ? 'low' :
+    awarenessAvg < 2.6 ? 'medium' : 'high';
 
-  interactionSummary += ` ｜ 自我認知層級: ${awarenessLevel}`;
+  window.chartPercentages = percentMap;
+  document.getElementById('radarChart').chartData = percentMap;
 
-  let comboLabel = '';
-  if (highDims.length === 0 && lowDims.length === 0) {
-    comboLabel = '多面向均衡型';
-  } else if (highDims.length >= 2 && lowDims.length >= 1) {
-    comboLabel = '多強多弱型';
-  } else if (highDims.length === 1 && lowDims.length === 0) {
-    comboLabel = '單一優勢型';
-  } else {
-    comboLabel = '混合型';
-  }
-  interactionSummary += ` ｜ 分析類型: ${comboLabel}`;
-
-  const radarBlock = document.getElementById('radarBlock').querySelector('div');
-  radarBlock.innerHTML = `<p class="mb-2 text-gray-700">${interactionSummary}</p>` + radarBlock.innerHTML;
-
-  drawRadarChart(avg);
-
-  const topKey = dimKeyMap[getTopKey(avg)];
-  const advKey = getAdvKey(avg, dimKeyMap);
-  loadHTML('personaBlock', `persona_${topKey}.html`);
-  loadHTML('advBlock', `strength_${advKey}_high.html`);
-  loadLowScores(avg, dimKeyMap);
-  loadAwareness(user);
+  loadDimensionSection(highDim, 'high', 'highBlock');
+  loadDimensionSection(midDim, 'second', 'midBlock');
+  loadDimensionSection(lowDim, 'low', 'lowBlock');
+  loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${highDim}_${midDim}.html`);
 }
 
-function drawRadarChart(avg) {
+function drawRadarChart(labels, percentData) {
   if (radarChart) radarChart.destroy();
-  const percentData = Object.values(avg).map(v => Math.round((v - 1) / 2 * 100));
   radarChart = new Chart(document.getElementById("radarChart"), {
     type: 'radar',
     data: {
-      labels: Object.keys(avg),
+      labels,
       datasets: [{
         label: '構面分數 (%)',
         data: percentData,
@@ -161,46 +145,29 @@ function drawRadarChart(avg) {
   });
 }
 
+async function loadDimensionSection(dim, section, blockId) {
+  const path = `${dim}.html`;
+  const percent = window.chartPercentages[dim] || 0;
+  try {
+    const res = await fetch(path);
+    const html = await res.text();
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const sectionContent = tempDiv.querySelector(`#${dim}-${section}`);
+    document.getElementById(blockId).innerHTML = sectionContent 
+      ? `
+        <h3>${dim}-${section} <span>${percent}%</span></h3>
+        <div>${sectionContent.innerHTML}</div>
+      `
+      : `❌ ${dim}-${section} 未找到`;
+  } catch {
+    document.getElementById(blockId).innerHTML = `❌ 無法載入 ${path}`;
+  }
+}
+
 function loadHTML(id, path) {
   fetch(path)
     .then(r => r.ok ? r.text() : Promise.reject())
-    .then(t => document.getElementById(id).innerHTML = t)
+    .then(t => document.getElementById(id).innerHTML = `<div>${t}</div>`)
     .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`);
-}
-
-function loadLowScores(avg, dimKeyMap) {
-  const riskDiv = document.getElementById("riskBlock");
-  riskDiv.innerHTML = '';
-  const importanceOrder = ["自我認知", "團隊展現", "執行能力", "創意展現", "工作風格"];
-  const entries = Object.entries(avg).sort((a, b) => a[1] - b[1]);
-  const lowCandidates = entries.slice(0, 4).map(([k]) => k);
-  const sortedByImportance = importanceOrder.filter(k => lowCandidates.includes(k)).slice(0, 2);
-
-  sortedByImportance.forEach(k => {
-    const div = document.createElement("div");
-    riskDiv.appendChild(div);
-    const riskKey = `./risk_${dimKeyMap[k]}_low.html`;
-    fetch(riskKey)
-      .then(r => r.ok ? r.text() : Promise.reject())
-      .then(h => div.innerHTML = h)
-      .catch(err => div.innerHTML = `❌ 無法載入 ${riskKey} (${err.message})`);
-  });
-}
-
-function loadAwareness(user) {
-  const awarenessAvg = [2,6,8,9,10,11,26,27,28,29,30,32,34].reduce((sum,i) => sum + user.scores[i],0) / 13;
-  const level = awarenessAvg < 1.8 ? 'extremely_low' :
-    awarenessAvg < 2.1 ? 'low' :
-    awarenessAvg < 2.6 ? 'medium' :
-    awarenessAvg < 2.9 ? 'high' : 'extremely_high';
-  loadHTML('awarenessBlock', `awareness_${level}.html`);
-}
-
-function getTopKey(avg) {
-  return Object.entries(avg).sort((a, b) => b[1] - a[1])[0][0];
-}
-
-function getAdvKey(avg, dimKeyMap) {
-  const high = Object.entries(avg).filter(([_, v]) => v >= 2.6).map(([k]) => dimKeyMap[k]);
-  return high.length ? high.slice(0, 3).sort().join('_') : dimKeyMap[getTopKey(avg)];
 }
