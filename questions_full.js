@@ -1,5 +1,4 @@
-// 題目清單
-const questions = [
+window.questions = [
   // Team (團隊展現)
   { id: 1, dimension: "team", type: "self", text: "當工作中出現分歧時，我通常會主動協調彼此的意見。" },
   { id: 2, dimension: "team", type: "self", text: "我會主動詢問團隊成員的想法，而不是只做自己的部分。" },
@@ -44,8 +43,7 @@ const questions = [
   { id: 31, dimension: "consistency", type: "reverse", text: "在壓力下，我幾乎總能表現完美。" }
 ];
 
-// Likert scale 選項
-const options = [
+window.options = [
   { value: 1, label: "非常不同意" },
   { value: 2, label: "不同意" },
   { value: 3, label: "有點不同意" },
@@ -53,7 +51,3 @@ const options = [
   { value: 5, label: "同意" },
   { value: 6, label: "非常同意" }
 ];
-
-// 確保與 test.html 相容（用全域變數，不用 export）
-window.questions = questions;
-window.options = options;
