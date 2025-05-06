@@ -105,7 +105,6 @@
         .then(r => r.ok ? r.text() : Promise.reject())
         .then(t => {
           document.getElementById('awarenessContent').innerHTML = `<div class="awareness-box">${t}</div>`;
-          // 額外比對自評與他評（需由 dashboard_logic.js 提供的資料）
           const chartData = document.getElementById('radarChart').chartData || {};
           const selfAvg = chartData.awarenessSelf || "N/A";
           const otherAvg = chartData.awarenessOther || "N/A";
