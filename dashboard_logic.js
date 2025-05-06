@@ -55,6 +55,191 @@ function showUserData(user) {
   }
 
   const dimMap = {
+    "團隊展現": { key: "team", idxs: [0,1,2,3,4] },
+    "執行能力": { key: "execution", idxs: [5,6,7,8,9] },
+    "創意展現": { key: "creativity", idxs: [10,11,12,13,14] },
+    "工作風格": { key: "workstyle", idxs: [15,16,17,18,19] },
+    "自我認知": { key: "awareness", idxs: [20,21,22,23,24] },
+    "一致性": { key: "consistency", idxs: [25,26,27,28,29,30] }
+  };
+
+  const MAX_SCORE = 6;
+  const percentMap = {};
+  const scoresMap = {};
+
+  Object.entries(dimMap).forEach(([dim, { idxs }]) => {
+    const dimScores = idxs.map(i => user.scores[i]);
+    const avg = dimScores.reduce((a, b) => a + b, 0) / dimScores.length;
+    scoresMap[dim] = avg;
+  });
+
+  // 自覺 vs 他評分離處理
+  const selfIdxs = {
+    "團隊展現": [0,1,2],
+    "執行能力": [5,6,7],
+    "創意展現": [10,11,12],
+    "工作風格": [15,16,17],
+    "自我認知": [20,21,22]
+  };
+  const otherIdxs = {
+    "團隊展現": [3,4],
+    "執行能力": [8,9],
+    "創意展現": [13,14],
+    "工作風格": [18,19],
+    "自我認知": [23,24]
+  };
+
+  const weightedScores = {};
+  Object.keys(selfIdxs).forEach(dim => {
+    const selfAvg = selfIdxs[dim].map(i => user.scores[i]).reduce((a,b) => a+b,0) / selfIdxs[dim].length;
+    const otherAvg = otherIdxs[dim].map(i => user.scores[i]).reduce((a,b) => a+b,0) / otherIdxs[dim].length;
+    weightedScores[dim] = (selfAvg * 0.4 + otherAvg * 0.4);
+  });
+
+  // 計算一致性
+  const consistencyAvg = dimMap["一致性"].idxs.map(i => user.scores[i]).reduce((a,b)=>a+b,0) / dimMap["一致性"].idxs.length;
+  const suspicious = consistencyAvg >= 5.5;
+
+  // 百分比換算
+  Object.keys(weightedScores).forEach(dim => {
+    percentMap[dimMap[dim].key] = Math.round((weightedScores[dim] / MAX_SCORE) * 100);
+  });
+
+  // awareness gap
+  const awarenessSelf = selfIdxs["自我認知"].map(i => user.scores[i]).reduce((a,b)=>a+b,0) / selfIdxs["自我認知"].length;
+  const awarenessOther = otherIdxs["自我認知"].map(i => user.scores[i]).reduce((a,b)=>a+b,0) / otherIdxs["自我認知"].length;
+  const awarenessGap = Math.abs(awarenessSelf - awarenessOther);
+  const awarenessLevel = awarenessGap < 0.1 ? 'high' : (awarenessGap < 0.25 ? 'medium' : 'low');
+
+  drawRadarChart(Object.keys(weightedScores), Object.values(percentMap));
+
+  // 排序找高、中、低
+  const sortedDims = Object.entries(weightedScores).sort((a, b) => b[1] - a[1]);
+  const highDim = dimMap[sortedDims[0][0]].key;
+  const midDim = dimMap[sortedDims[1][0]].key;
+  const lowDim = dimMap[sortedDims[sortedDims.length -1][0]].key;
+
+  window.chartPercentages = percentMap;
+
+  loadDimensionSection(highDim, 'high', 'highBlock');
+  loadDimensionSection(midDim, 'second', 'midBlock');
+  loadDimensionSection(lowDim, 'low', 'lowBlock');
+  loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${highDim}_${midDim}.html`);
+
+  if (suspicious) {
+    document.getElementById('awarenessBlock').innerHTML += `<div style="color:red; font-weight:bold;">⚠️ 注意：填答一致性偏高，請小心解讀結果</div>`;
+  }
+}
+
+function drawRadarChart(labels, percentData) {
+  if (radarChart) radarChart.destroy();
+  radarChart = new Chart(document.getElementById("radarChart"), {
+    type: 'radar',
+    data: {
+      labels,
+      datasets: [{
+        label: '構面分數 (%)',
+        data: percentData,
+        backgroundColor: 'rgba(33,111,163,0.2)',
+        borderColor: '#2170a3',
+        pointBackgroundColor: '#2170a3'
+      }]
+    },
+    options: {
+      scales: {
+        r: {
+          min: 0,
+          max: 100,
+          ticks: { stepSize: 20, callback: v => `${v}%`, backdropColor: 'transparent', font: { size: 14 } },
+          pointLabels: { font: { size: 16 } }
+        }
+      },
+      plugins: { legend: { display: false } },
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+async function loadDimensionSection(dim, section, blockId) {
+  const path = `${dim}.html`;
+  const percent = window.chartPercentages[dim] || 0;
+  try {
+    const res = await fetch(path);
+    const html = await res.text();
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    const sectionContent = tempDiv.querySelector(`#${dim}-${section}`);
+    document.getElementById(blockId).innerHTML = sectionContent 
+      ? `<h3>${dim}-${section} <span>${percent}%</span></h3><div>${sectionContent.innerHTML}</div>`
+      : `❌ ${dim}-${section} 未找到`;
+  } catch {
+    document.getElementById(blockId).innerHTML = `❌ 無法載入 ${path}`;
+  }
+}
+
+function loadHTML(id, path) {
+  fetch(path)
+    .then(r => r.ok ? r.text() : Promise.reject())
+    .then(t => document.getElementById(id).innerHTML = `<div>${t}</div>`)
+    .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`);
+}
+
+let radarChart;
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetchData();
+});
+
+function fetchData() {
+  fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
+    headers: { 'apikey': SUPABASE_API_KEY, 'Authorization': `Bearer ${SUPABASE_API_KEY}` }
+  })
+    .then(res => res.json())
+    .then(data => initSelectors(data))
+    .catch(err => console.error("❌ 資料讀取失敗", err));
+}
+
+function initSelectors(data) {
+  const dateInput = document.getElementById("dateSelector");
+  const userSelector = document.getElementById("userSelector");
+  userSelector.filteredUsers = [];
+
+  dateInput.addEventListener('change', () => updateUserSelector(data, dateInput.value));
+  userSelector.addEventListener('change', () => {
+    const selectedIndex = userSelector.value;
+    const selectedUser = userSelector.filteredUsers[selectedIndex];
+    if (selectedUser) showUserData(selectedUser);
+  });
+}
+
+function updateUserSelector(data, selectedDate) {
+  const userSelector = document.getElementById("userSelector");
+  userSelector.innerHTML = "<option value=''>請選擇</option>";
+  userSelector.disabled = false;
+
+  const filtered = data.filter(d => d.date.substring(0, 10) === selectedDate);
+  userSelector.filteredUsers = filtered;
+
+  filtered.forEach((d, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.text = d.name;
+    userSelector.appendChild(opt);
+  });
+}
+
+function showUserData(user) {
+  if (!user) return;
+
+  try {
+    user.scores = typeof user.scores === 'string' ? JSON.parse(user.scores) : user.scores;
+  } catch {
+    console.error("❌ scores JSON 解析失敗", user.scores);
+    return;
+  }
+
+  const dimMap = {
     "團隊展現": [0,1,2,3,4],
     "執行能力": [5,6,7,8,9],
     "創意展現": [10,11,12,13,14],
