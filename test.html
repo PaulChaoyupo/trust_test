@@ -15,118 +15,49 @@
       max-width: 960px;
       color: #333;
     }
-    h2 {
-      text-align: center;
-      color: #1d3557;
-      margin-bottom: 1rem;
-      font-size: 2rem;
-    }
+    h2 { text-align: center; color: #1d3557; margin-bottom: 1rem; font-size: 2rem; }
     .progress-bar {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      height: 20px;
-      background: #e0e0e0;
-      z-index: 999;
-      font-size: 0.85rem;
-      color: #fff;
+      position: fixed; bottom: 0; left: 0; width: 100%; height: 20px;
+      background: #e0e0e0; z-index: 999; font-size: 0.85rem; color: #fff;
     }
     .progress-bar-fill {
-      height: 100%;
-      width: 0;
+      height: 100%; width: 0;
       background: linear-gradient(90deg, #a8dadc, #457b9d);
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: flex; align-items: center; justify-content: center;
       transition: width 0.3s ease;
     }
-    .intro {
-      margin-bottom: 2rem;
-      background: #fff;
-      padding: 1rem;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-    label {
-      font-weight: 500;
-      display: block;
-      margin-bottom: 0.5rem;
-    }
+    .intro { margin-bottom: 2rem; background: #fff; padding: 1rem; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    label { font-weight: 500; display: block; margin-bottom: 0.5rem; }
     input[type="text"], input[type="date"] {
-      width: 100%;
-      padding: 0.6rem;
-      margin-bottom: 1rem;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 1rem;
+      width: 100%; padding: 0.6rem; margin-bottom: 1rem;
+      border: 1px solid #ccc; border-radius: 8px; font-size: 1rem;
     }
-    .question {
-      background: #fff;
-      padding: 1.2rem;
-      margin-bottom: 1.5rem;
-      border-radius: 16px;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      opacity: 1;
-      transition: opacity 0.4s ease;
+    .question { background: #fff; padding: 1.2rem; margin-bottom: 1.5rem;
+      border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); opacity: 1; transition: opacity 0.4s ease;
     }
-    .question.answered {
-      opacity: 0.5;
-    }
-    .question strong {
-      font-size: 1.1rem;
-      color: #1d3557;
-      display: block;
-      margin-bottom: 0.6rem;
-    }
+    .question.answered { opacity: 0.5; }
+    .question strong { font-size: 1.1rem; color: #1d3557; display: block; margin-bottom: 0.6rem; }
     .likert {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-top: 0.6rem;
+      display: flex; align-items: center; justify-content: space-between; margin-top: 0.6rem;
     }
     .likert label {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      cursor: pointer;
-      font-size: 0.9rem;
+      display: flex; flex-direction: column; align-items: center; cursor: pointer; font-size: 0.9rem;
     }
-    .likert input[type="radio"] {
-      display: none;
-    }
+    .likert input[type="radio"] { display: none; }
     .likert span.circle {
-      display: inline-block;
-      width: 36px;
-      height: 36px;
-      line-height: 36px;
-      background: #e0e0e0;
-      border-radius: 50%;
-      text-align: center;
-      font-size: 0.9rem;
+      display: inline-block; width: 36px; height: 36px; line-height: 36px;
+      background: #e0e0e0; border-radius: 50%; text-align: center; font-size: 0.9rem;
       transition: background 0.3s, transform 0.2s;
     }
     .likert input[type="radio"]:checked + span.circle {
-      background: #457b9d;
-      color: #fff;
-      transform: scale(1.1);
+      background: #457b9d; color: #fff; transform: scale(1.1);
     }
     button {
-      display: block;
-      width: 100%;
-      padding: 1rem;
-      font-size: 1.2rem;
-      background-color: #457b9d;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      margin-top: 2rem;
-      cursor: pointer;
-      transition: background 0.3s ease;
+      display: block; width: 100%; padding: 1rem; font-size: 1.2rem;
+      background-color: #457b9d; color: white; border: none; border-radius: 12px;
+      margin-top: 2rem; cursor: pointer; transition: background 0.3s ease;
     }
-    button:hover {
-      background-color: #1d3557;
-    }
+    button:hover { background-color: #1d3557; }
   </style>
 </head>
 <body>
@@ -145,12 +76,12 @@
 
   <script>
     const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-    const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc
-';
+    const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
 
     window.addEventListener("DOMContentLoaded", () => {
       try {
         if (!Array.isArray(window.questions)) throw new Error("questions 題庫未載入");
+        if (!Array.isArray(window.options)) throw new Error("options 選項未載入");
 
         const form = document.getElementById("testForm");
         window.questions.forEach((q, i) => {
@@ -159,14 +90,14 @@
           div.id = "q" + i;
           div.innerHTML = `<strong>${q.text}</strong>
             <div class="likert">
-              <span style="margin-right: 0.5rem;">非常不同意</span>
-              ${[1,2,3,4,5,6].map(val => `
+              <span>非常不同意</span>
+              ${window.options.map(opt => `
                 <label>
-                  <input type="radio" name="q${i}" value="${val}" onchange="scrollToNext(${i})">
-                  <span class="circle">${val}</span>
+                  <input type="radio" name="q${i}" value="${opt.value}" onchange="scrollToNext(${i})">
+                  <span class="circle">${opt.value}</span>
                 </label>
               `).join('')}
-              <span style="margin-left: 0.5rem;">非常同意</span>
+              <span>非常同意</span>
             </div>`;
           form.appendChild(div);
         });
