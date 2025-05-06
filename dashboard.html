@@ -6,43 +6,19 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     body { font-family: Arial, sans-serif; margin: 20px; background-color: #f9f9f9; }
-    h2, h3, h4 { color: #333; margin-bottom: 10px; }
+    h2, h3 { color: #333; }
     section { margin-bottom: 20px; }
     select, input[type="date"] { margin: 0 10px; padding: 5px; }
 
-    .block {
-      background: #fff;
-      padding: 15px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-    .progress-bar {
-      width: 100%;
-      background: #eee;
-      height: 10px;
-      border-radius: 5px;
-      margin: 10px 0;
-    }
-    .progress-fill {
-      height: 10px;
-      border-radius: 5px;
-    }
+    .block { background: #fff; padding: 15px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    .progress-bar { width: 100%; background: #eee; height: 10px; border-radius: 5px; margin: 10px 0; }
+    .progress-fill { height: 10px; border-radius: 5px; }
     .progress-fill.low { background: #f08080; }
     .progress-fill.mid { background: #f0ad4e; }
     .progress-fill.high { background: #5cb85c; }
 
-    .awareness-box {
-      background: #f0f8ff;
-      border-left: 4px solid #2170a3;
-      padding: 10px;
-      margin: 20px 0;
-    }
-    .tooltip {
-      position: relative;
-      cursor: pointer;
-      border-bottom: 1px dotted #333;
-    }
+    .awareness-box { background: #f0f8ff; border-left: 4px solid #2170a3; padding: 10px; margin: 20px 0; }
+    .tooltip { position: relative; cursor: pointer; border-bottom: 1px dotted #333; }
     .tooltip:hover::after {
       content: attr(data-tooltip);
       position: absolute;
@@ -71,7 +47,6 @@
   </section>
 
   <div class="block">
-    <h3>構面總覽</h3>
     <canvas id="radarChart" width="400" height="400"></canvas>
   </div>
 
@@ -96,46 +71,5 @@
   </div>
 
   <script src="dashboard_logic.js"></script>
-  <script>
-    function renderDimensionBlock(id, title, percent, content) {
-      let levelClass = percent >= 70 ? 'high' : percent >= 40 ? 'mid' : 'low';
-      return `
-        <h4>${title} <span class="tooltip" data-tooltip="詳細解釋：${title}">${percent}%</span></h4>
-        <div class="progress-bar">
-          <div class="progress-fill ${levelClass}" style="width: ${percent}%"></div>
-        </div>
-        <div>${content}</div>
-      `;
-    }
-
-    async function loadDimensionSection(dim, section, blockId) {
-      const path = `${dim}.html`;
-      const percent = document.getElementById('radarChart').chartData[dim] || 0;
-      try {
-        const res = await fetch(path);
-        const html = await res.text();
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = html;
-        const sectionContent = tempDiv.querySelector(`#${dim}-${section}`);
-        const blockContent = document.getElementById(blockId.replace('Block', 'Content'));
-        blockContent.innerHTML = sectionContent 
-          ? renderDimensionBlock(blockId, `${dim}-${section}`, percent, sectionContent.innerHTML)
-          : `<p>❌ ${dim}-${section} 未找到</p>`;
-      } catch {
-        document.getElementById(blockId.replace('Block', 'Content')).innerHTML = `<p>❌ 無法載入 ${path}</p>`;
-      }
-    }
-
-    function loadHTML(id, path) {
-      fetch(path)
-        .then(r => r.ok ? r.text() : Promise.reject())
-        .then(t => {
-          document.getElementById('awarenessContent').innerHTML = `<div class="awareness-box">${t}</div>`;
-        })
-        .catch(() => {
-          document.getElementById('awarenessContent').innerHTML = `<div class="awareness-box">❌ 無法載入 ${path}</div>`;
-        });
-    }
-  </script>
 </body>
 </html>
