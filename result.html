@@ -8,152 +8,136 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-50">
-  <div class="max-w-3xl mx-auto p-6">
-    <h2 class="text-3xl font-bold text-center text-blue-700 mb-4">你的測驗結果分析</h2>
-    <p id="basicInfo" class="text-center text-gray-600 mb-6">姓名 / 日期</p>
-    <div class="bg-white rounded shadow p-4 mb-6">
-      <canvas id="radarChart" class="w-full h-64"></canvas>
-    </div>
-    <div id="personaBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h3 class="text-xl font-semibold mb-2 text-indigo-700">主導構面</h3>
-      <div>主導構面敘述載入中...</div>
-    </div>
-    <div id="advBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h3 class="text-xl font-semibold mb-2 text-indigo-700">優勢組合說明</h3>
-      <div>優勢組合說明載入中...</div>
-    </div>
-    <div id="riskBlock" class="bg-white rounded shadow p-4 mb-4">
-      <h3 class="text-xl font-semibold mb-2 text-indigo-700">未來發展提醒</h3>
-      <div>提醒內容載入中...</div>
-    </div>
-    <div id="radarBlock" class="bg-white rounded shadow p-4">
-      <h3 class="text-xl font-semibold mb-2 text-indigo-700">雷達圖整體解說</h3>
-      <div>雷達圖整體解說載入中...</div>
-    </div>
+<div class="max-w-3xl mx-auto p-6">
+  <h2 class="text-3xl font-bold text-center text-blue-700 mb-4">你的測驗結果分析</h2>
+  <p id="basicInfo" class="text-center text-gray-600 mb-6">姓名 / 日期</p>
+  <div class="bg-white rounded shadow p-4 mb-6">
+    <canvas id="radarChart" class="w-full h-64"></canvas>
   </div>
+  <div id="highBlock" class="bg-white rounded shadow p-4 mb-4">
+    <h3 class="text-xl font-semibold mb-2 text-indigo-700">高分構面</h3>
+    <div>載入中...</div>
+  </div>
+  <div id="midBlock" class="bg-white rounded shadow p-4 mb-4">
+    <h3 class="text-xl font-semibold mb-2 text-indigo-700">次高分構面</h3>
+    <div>載入中...</div>
+  </div>
+  <div id="lowBlock" class="bg-white rounded shadow p-4 mb-4">
+    <h3 class="text-xl font-semibold mb-2 text-indigo-700">低分構面</h3>
+    <div>載入中...</div>
+  </div>
+  <div id="awarenessBlock" class="bg-white rounded shadow p-4">
+    <h3 class="text-xl font-semibold mb-2 text-indigo-700">自覺層級分析</h3>
+    <div>載入中...</div>
+  </div>
+</div>
 
 <script>
 const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
 const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
+const urlParams = new URLSearchParams(window.location.search);
+const userId = urlParams.get('id');
 
-fetch(`${SUPABASE_URL}/rest/v1/results?select=*&order=created_at.desc&limit=1`, {
-  headers: {
-    'apikey': SUPABASE_API_KEY,
-    'Authorization': `Bearer ${SUPABASE_API_KEY}`
-  }
-})
-.then(response => response.json())
-.then(data => {
-  if (!data || data.length === 0) {
-    document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 找不到測驗結果</h3>";
-    return;
-  }
-  const res = data[0];
-  res.scores = typeof res.scores === 'string' ? JSON.parse(res.scores) : res.scores;
-  runAnalysis(res);
-})
-.catch(error => {
-  console.error("❌ Supabase 抓資料失敗", error);
-  document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 無法讀取資料</h3>";
-});
-
-function runAnalysis(res) {
-  document.getElementById("basicInfo").innerText = `${res.name}｜${res.date}`;
-  const dimensionMap = {
-    "團隊展現": [0,1,32],
-    "自我認知": [2,6,8,9,10,11,26,27,28,29,30,32,34],
-    "執行能力": [4,5,19,20,21],
-    "創意展現": [12,13,14,17,18],
-    "工作風格": [3,7,15,16,31,33]
-  };
-  const dimensionKeyMap = {
-    "團隊展現": "team",
-    "自我認知": "awareness",
-    "執行能力": "execution",
-    "創意展現": "creativity",
-    "工作風格": "workstyle"
-  };
-  const avg = {};
-  for (const [dim, idxs] of Object.entries(dimensionMap)) {
-    avg[dim] = idxs.reduce((sum, i) => sum + res.scores[i], 0) / idxs.length;
-  }
-  const avgKey = Object.fromEntries(Object.entries(avg).map(([k,v]) => [dimensionKeyMap[k], v]));
-  const sorted = Object.entries(avgKey).sort((a,b) => b[1]-a[1]);
-  const top = sorted[0][0];
-  const high = sorted.filter(([_,v]) => v >= 2.6).map(([k]) => k);
-  const low = sorted.filter(([_,v]) => v < 2.1).map(([k]) => k);
-  const advKey = high.length ? high.slice(0,3).sort().join("_") : "general";
-  const allLow = Math.max(...Object.values(avgKey)) < 2;
-  const allHigh = Math.min(...Object.values(avgKey)) >= 2.6;
-
-  new Chart(document.getElementById("radarChart"), {
-    type: 'radar',
-    data: {
-      labels: Object.keys(avg),
-      datasets: [{
-        label: '構面分數',
-        data: Object.values(avgKey),
-        backgroundColor: 'rgba(33,111,163,0.2)',
-        borderColor: '#2170a3',
-        pointBackgroundColor: '#2170a3'
-      }]
-    },
-    options: {
-      scales: {
-        r: {
-          min: 1,
-          max: 3,
-          ticks: { stepSize: 0.5, font: { size: 12 } },
-          pointLabels: { font: { size: 14 }, padding: 10 }
-        }
-      },
-      plugins: { legend: { display: false } }
+if (!userId) {
+  document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 缺少識別碼，請從測驗頁面進入</h3>";
+} else {
+  fetch(`${SUPABASE_URL}/rest/v1/results?id=eq.${userId}`, {
+    headers: { 'apikey': SUPABASE_API_KEY, 'Authorization': `Bearer ${SUPABASE_API_KEY}` }
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (!data || data.length === 0) {
+      document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 找不到你的測驗結果</h3>";
+      return;
     }
+    const user = data[0];
+    try {
+      user.scores = typeof user.scores === 'string' ? JSON.parse(user.scores) : user.scores;
+      analyze(user);
+    } catch {
+      document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 資料格式錯誤</h3>";
+    }
+  })
+  .catch(() => {
+    document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 無法讀取資料</h3>";
+  });
+}
+
+function analyze(user) {
+  document.getElementById("basicInfo").innerText = `${user.name || '匿名使用者'}｜${user.date}`;
+
+  const dimMap = {
+    "團隊展現": { key: "team", idxs: [0,1,2,3,4] },
+    "執行能力": { key: "execution", idxs: [5,6,7,8,9] },
+    "創意展現": { key: "creativity", idxs: [10,11,12,13,14] },
+    "工作風格": { key: "workstyle", idxs: [15,16,17,18,19] },
+    "自我認知": { key: "awareness", idxs: [20,21,22,23,24] },
+    "一致性": { key: "consistency", idxs: [25,26,27,28,29,30] }
+  };
+  const MAX_SCORE = 6;
+  const weighted = {}, percent = {};
+  Object.entries(dimMap).forEach(([dim, { idxs }]) => {
+    const vals = idxs.map(i => user.scores[i]);
+    const avg = vals.reduce((a,b) => a+b,0)/vals.length;
+    weighted[dim] = avg;
+    percent[dimMap[dim].key] = Math.round((avg/MAX_SCORE)*100);
   });
 
-  function fetchInject(id, path, fallback) {
-    fetch(path)
-      .then(r => r.ok ? r.text() : Promise.reject())
-      .then(t => document.getElementById(id).querySelector('div').innerHTML = t)
-      .catch(() => {
-        if (fallback) {
-          fetch(fallback)
-            .then(r2 => r2.ok ? r2.text() : Promise.reject())
-            .then(t2 => document.getElementById(id).querySelector('div').innerHTML = t2)
-            .catch(() => document.getElementById(id).querySelector('div').innerHTML = `❌ 無法載入 ${path} 和 ${fallback}`);
-        } else {
-          document.getElementById(id).querySelector('div').innerHTML = `❌ 無法載入 ${path}`;
-        }
-      });
-  }
+  const selfAvg = dimMap['自我認知'].idxs.slice(0,3).map(i=>user.scores[i]).reduce((a,b)=>a+b,0)/3;
+  const otherAvg = dimMap['自我認知'].idxs.slice(3).map(i=>user.scores[i]).reduce((a,b)=>a+b,0)/2;
+  const awarenessGap = Math.abs(selfAvg - otherAvg);
+  const awarenessLevel = awarenessGap<0.5?'high':(awarenessGap<1?'medium':'low');
 
-  fetchInject("personaBlock", `persona_${top}_user.html`, 'persona_general_user.html');
-  fetchInject("advBlock", `strength_${advKey}_high_user.html`, 'strength_general_high_user.html');
-  fetchInject("radarBlock", `radar_${top}_user.html`, 'radar_general_user.html');
+  const consistencyAvg = dimMap['一致性'].idxs.map(i=>user.scores[i]).reduce((a,b)=>a+b,0)/6;
+  const suspicious = consistencyAvg>4.5;
 
-  const riskDiv = document.getElementById("riskBlock").querySelector('div');
-  if (allLow) {
-    fetch(`risk_all_low_user.html`)
-      .then(r => r.ok ? r.text() : Promise.reject())
-      .then(h => riskDiv.innerHTML = h)
-      .catch(() => riskDiv.innerHTML = `❌ 無法載入 risk_all_low_user.html`);
-  } else if (allHigh) {
-    fetch(`risk_all_high_user.html`)
-      .then(r => r.ok ? r.text() : Promise.reject())
-      .then(h => riskDiv.innerHTML = h)
-      .catch(() => riskDiv.innerHTML = `❌ 無法載入 risk_all_high_user.html`);
-  } else {
-    riskDiv.innerHTML = '';
-    low.forEach(k => {
-      const div = document.createElement("div");
-      riskDiv.appendChild(div);
-      const riskKey = `risk_${k}_low_user.html`;
-      fetch(riskKey)
-        .then(r => r.ok ? r.text() : Promise.reject())
-        .then(h => div.innerHTML = h)
-        .catch(() => div.innerHTML = `❌ 無法載入 ${riskKey}`);
-    });
+  const sorted = Object.entries(weighted).filter(([k])=>k!=='一致性').sort((a,b)=>b[1]-a[1]);
+  const [highDim, midDim, lowDim] = [sorted[0][0], sorted[1][0], sorted[sorted.length-1][0]].map(d=>dimMap[d].key);
+
+  drawChart(Object.keys(dimMap).filter(d=>d!=='一致性'), Object.keys(dimMap).filter(d=>d!=='一致性').map(d=>percent[dimMap[d].key]));
+
+  loadSection(highDim, 'high', 'highBlock');
+  loadSection(midDim, 'second', 'midBlock');
+  loadSection(lowDim, 'low', 'lowBlock');
+  loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${highDim}_${midDim}.html`);
+
+  if(suspicious){
+    document.getElementById('awarenessBlock').innerHTML += `<div class="text-red-600 font-bold mt-2">⚠️ 注意：填答一致性偏高，請小心解讀結果</div>`;
   }
+}
+
+function drawChart(labels, data){
+  new Chart(document.getElementById("radarChart"), {
+    type:'radar',
+    data:{labels,datasets:[{label:'構面分數(%)',data,backgroundColor:'rgba(33,111,163,0.2)',borderColor:'#2170a3',pointBackgroundColor:'#2170a3'}]},
+    options:{
+      scales:{r:{min:0,max:100,ticks:{stepSize:20,callback:v=>`${v}%`,backdropColor:'transparent',font:{size:14}},pointLabels:{font:{size:16}}}},
+      plugins:{legend:{display:false}},
+      responsive:true,maintainAspectRatio:false
+    }
+  });
+}
+
+async function loadSection(dim,section,blockId){
+  const path=`${dim}.html`;
+  const pct=window.chartPercentages?window.chartPercentages[dim]:0;
+  try{
+    const res=await fetch(path);
+    const html=await res.text();
+    const temp=document.createElement('div');
+    temp.innerHTML=html;
+    const sec=temp.querySelector(`#${dim}-${section}`);
+    document.getElementById(blockId).innerHTML=sec?`<h3 class="text-lg font-semibold mb-2">${dim}-${section} <span>${pct}%</span></h3><div>${sec.innerHTML}</div>`:`❌ ${dim}-${section} 未找到`;
+  }catch{
+    document.getElementById(blockId).innerHTML=`❌ 無法載入 ${path}`;
+  }
+}
+
+function loadHTML(id,path){
+  fetch(path)
+    .then(r=>r.ok?r.text():Promise.reject())
+    .then(t=>document.getElementById(id).innerHTML=`<div>${t}</div>`)
+    .catch(()=>document.getElementById(id).innerHTML=`❌ 無法載入 ${path}`);
 }
 </script>
 </body>
