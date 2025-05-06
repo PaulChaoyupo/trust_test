@@ -81,16 +81,16 @@
     }
     .likert {
       display: flex;
-      flex-direction: row;
-      gap: 0.6rem;
+      align-items: center;
+      justify-content: space-between;
       margin-top: 0.6rem;
     }
     .likert label {
       display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 0.6rem;
       cursor: pointer;
-      font-size: 0.95rem;
+      font-size: 0.9rem;
     }
     .likert input[type="radio"] {
       display: none;
@@ -145,12 +145,12 @@
 
   <script>
     const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-    const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
+    const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc
+';
 
     window.addEventListener("DOMContentLoaded", () => {
       try {
         if (!Array.isArray(window.questions)) throw new Error("questions 題庫未載入");
-        if (!Array.isArray(window.options)) throw new Error("options 選項未載入");
 
         const form = document.getElementById("testForm");
         window.questions.forEach((q, i) => {
@@ -159,18 +159,19 @@
           div.id = "q" + i;
           div.innerHTML = `<strong>${q.text}</strong>
             <div class="likert">
-              ${window.options.map(opt => `
+              <span style="margin-right: 0.5rem;">非常不同意</span>
+              ${[1,2,3,4,5,6].map(val => `
                 <label>
-                  <input type="radio" name="q${i}" value="${opt.value}" onchange="scrollToNext(${i})">
-                  <span class="circle">${opt.value}</span>
-                  <span>${opt.label}</span>
+                  <input type="radio" name="q${i}" value="${val}" onchange="scrollToNext(${i})">
+                  <span class="circle">${val}</span>
                 </label>
               `).join('')}
+              <span style="margin-left: 0.5rem;">非常同意</span>
             </div>`;
           form.appendChild(div);
         });
       } catch (e) {
-        document.body.innerHTML = "<h3 style='color:red'>⚠️ 題庫載入失敗，請確認 questions_36_full.js 是否與 test.html 同在一個資料夾中。</h3>";
+        document.body.innerHTML = "<h3 style='color:red'>⚠️ 題庫載入失敗，請確認 questions_full.js 是否與 test.html 同在一個資料夾中。</h3>";
       }
     });
 
@@ -216,8 +217,6 @@
       })
       .then(async res => {
         const data = await res.json();
-        console.log("✅ Supabase 回傳狀態碼:", res.status);
-        console.log("✅ Supabase 回傳內容:", data);
         if (!res.ok) {
           alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
           return;
@@ -226,7 +225,6 @@
         location.href = "result.html?name=" + encodeURIComponent(name);
       })
       .catch(error => {
-        console.error("❌ Supabase 送出失敗", error);
         alert("❌ Supabase 網路錯誤：" + error.message);
       });
     }
