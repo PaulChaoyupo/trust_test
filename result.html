@@ -52,12 +52,17 @@ if (!userId) {
     }
     const user = data[0];
     try {
-      user.scores = typeof user.scores === 'string' ? JSON.parse(user.scores) : user.scores;
+      if (typeof user.scores === 'string') {
+        user.scores = JSON.parse(user.scores);
+      } else if (!Array.isArray(user.scores)) {
+        throw new Error("scores 格式不正確");
+      }
       analyze(user);
-    } catch {
+    } catch (e) {
+      console.error("❌ scores 解析失敗", e);
       document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 資料格式錯誤</h3>";
     }
-  })
+})
   .catch(() => {
     document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 無法讀取資料</h3>";
   });
