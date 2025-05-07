@@ -147,14 +147,18 @@
         body: JSON.stringify(payload)
       })
       .then(async res => {
-        const data = await res.json();
-        if (!res.ok) {
-          alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
-          return;
-        }
-        alert("✅ 資料已成功送出！");
-        location.href = "result.html?name=" + encodeURIComponent(name);
-      })
+    const data = await res.json();
+    if (!res.ok) {
+      alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
+      return;
+    }
+    const insertedId = data[0]?.id;
+    if (insertedId) {
+      window.location.href = `result.html?id=${insertedId}`;
+    } else {
+      alert("✅ 資料已送出，但找不到 ID，請通知管理員查看");
+    }
+})
       .catch(error => {
         alert("❌ Supabase 網路錯誤：" + error.message);
       });
