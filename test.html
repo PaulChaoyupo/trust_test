@@ -152,7 +152,7 @@
       alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
       return;
     }
-    const insertedId = data[0]?.id;
+    const insertedId = data[0]?.ID;
     if (insertedId) {
       window.location.href = `result.html?id=${insertedId}`;
     } else {
