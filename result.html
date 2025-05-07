@@ -41,7 +41,7 @@ const userId = urlParams.get('id');
 if (!userId) {
   document.body.innerHTML = "<h3 class='text-center text-red-600 mt-10'>⚠️ 缺少識別碼，請從測驗頁面進入</h3>";
 } else {
-  fetch(`${SUPABASE_URL}/rest/v1/results?id=eq.${userId}`, {
+  fetch(`${SUPABASE_URL}/rest/v1/results?ID=eq.${userId}`, {
     headers: { 'apikey': SUPABASE_API_KEY, 'Authorization': `Bearer ${SUPABASE_API_KEY}` }
   })
   .then(res => res.json())
