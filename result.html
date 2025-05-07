@@ -51,6 +51,9 @@ if (!userId) {
       return;
     }
     const user = data[0];
+    console.log("👉 Supabase 回傳的 user 資料：", user);
+    console.log("👉 Supabase 回傳的 scores：", user.scores);
+    console.log("👉 scores typeof：", typeof user.scores);
     try {
       if (typeof user.scores === 'string') {
         user.scores = JSON.parse(user.scores);
