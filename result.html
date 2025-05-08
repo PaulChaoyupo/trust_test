@@ -1,4 +1,24 @@
-<!-- 修正版 result.html 總結邏輯 -->
+<div class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+  <!-- 左側 -->
+  <div id="progressSection" class="bg-white rounded shadow p-4">
+    <h2 class="text-2xl font-bold text-blue-700 mb-4 text-center">你的測驗結果</h2>
+    <p id="basicInfo" class="text-center text-gray-600 mb-6">姓名 / 日期</p>
+    <div id="progressBars" class="space-y-6"></div>
+  </div>
+
+  <!-- 右側角色區塊 -->
+  <div id="roleSection" class="bg-white rounded shadow p-4 flex flex-col items-center justify-center">
+    <h3 id="roleTitle" class="text-2xl font-bold text-indigo-700 mb-4 text-center">角色名稱載入中...</h3>
+    <img id="roleImage" class="max-w-full h-auto" src="" alt="角色插圖載入中">
+  </div>
+
+  <!-- 總結卡片 -->
+  <div id="summaryBlock" class="bg-white rounded shadow p-4 mt-6 col-span-1 md:col-span-2">
+    <h3 class="text-xl font-semibold mb-2 text-indigo-700">總結分析</h3>
+    <div>載入中...</div>
+  </div>
+</div>
+
 <script type="module">
 import roleNameMap from './role_name_map.js';
 
@@ -82,8 +102,6 @@ function analyze(user) {
       });
   });
 
-  // ✅ 總結敘述自動抓取組合
-  // 新的自覺層級計算邏輯（更嚴格）
   const selfAvg = (scores[20] + scores[21] + scores[22]) / 3;
   const otherAvg = (scores[23] + scores[24]) / 2;
   const awarenessGap = Math.abs(selfAvg - otherAvg);
