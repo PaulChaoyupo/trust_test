@@ -1,3 +1,4 @@
+<!-- 完整修正版 result.html -->
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -115,16 +116,17 @@ function analyze(user) {
       });
   });
 
-  // 載入總結敘述
-  fetch('awareness_level.html')
-    .then(r => r.text())
+  // 載入總結敘述（高分+低分+自覺層級）
+  const awarenessGap = Math.abs(avgScores['awareness'] - ((scores[20] + scores[21] + scores[22]) / 3));
+  let level = awarenessGap < 0.5 ? 'high' : (awarenessGap < 1 ? 'medium' : 'low');
+  const summaryFile = `summary_${highKey}_${lowKey}_${level}.html`;
+  fetch(summaryFile)
+    .then(r => r.ok ? r.text() : Promise.reject())
     .then(t => {
-      const temp = document.createElement('div');
-      temp.innerHTML = t;
-      const awarenessGap = Math.abs(avgScores['awareness'] - ((scores[20] + scores[21] + scores[22]) / 3));
-      let level = awarenessGap < 0.5 ? 'high' : (awarenessGap < 1 ? 'medium' : 'low');
-      const summary = temp.querySelector(`#awareness-${level}`);
-      document.querySelector('#summaryBlock > div').innerHTML = summary ? summary.innerHTML : '（找不到總結敘述）';
+      document.querySelector('#summaryBlock > div').innerHTML = `<div>${t}</div>`;
+    })
+    .catch(() => {
+      document.querySelector('#summaryBlock > div').innerHTML = '（找不到總結敘述）';
     });
 }
 </script>
