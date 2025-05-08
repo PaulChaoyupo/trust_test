@@ -77,8 +77,20 @@ function showUserData(user) {
   // 自覺-他評差異
   const selfAvg = dimMap['自我認知'].idxs.slice(0,3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/3;
   const otherAvg = dimMap['自我認知'].idxs.slice(3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/2;
+  // 自覺層級判斷（新邏輯）
+  const selfAvg = (scores[20] + scores[21] + scores[22]) / 3;
+  const otherAvg = (scores[23] + scores[24]) / 2;
   const awarenessGap = Math.abs(selfAvg - otherAvg);
-  const awarenessLevel = awarenessGap < 0.5 ? 'high' : (awarenessGap <1 ? 'medium' : 'low');
+
+let awarenessLevel = '';
+if (awarenessGap < 0.3) {
+    awarenessLevel = '高自覺';
+} else if (awarenessGap < 0.8) {
+    awarenessLevel = '中等自覺';
+} else {
+    awarenessLevel = '低自覺';
+}
+
 
   // 一致性處理
   const consistencyAvg = dimMap['一致性'].idxs.map(i => user.scores[i]).reduce((a,b)=>a+b,0)/6;
