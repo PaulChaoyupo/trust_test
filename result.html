@@ -83,9 +83,12 @@ function analyze(user) {
   });
 
   // ✅ 總結敘述自動抓取組合
-  const awarenessGap = Math.abs(avgScores['awareness'] - ((scores[20] + scores[21] + scores[22]) / 3));
-  let awarenessLevel = awarenessGap < 0.5 ? 'high' : (awarenessGap < 1 ? 'medium' : 'low');
-
+  // 新的自覺層級計算邏輯（更嚴格）
+const selfAvg = (scores[20] + scores[21] + scores[22]) / 3;
+const otherAvg = (scores[23] + scores[24]) / 2;
+const awarenessGap = Math.abs(selfAvg - otherAvg);
+let level = awarenessGap < 0.3 ? 'high' : (awarenessGap < 0.8 ? 'medium' : 'low');
+  
   Promise.all([
     fetch(`${highKey}_user.html`).then(r => r.text()),
     fetch(`${lowKey}_user.html`).then(r => r.text()),
