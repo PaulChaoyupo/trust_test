@@ -104,7 +104,7 @@ let level = awarenessGap < 0.3 ? 'high' : (awarenessGap < 0.8 ? 'medium' : 'low'
 
     const highContent = highTemp.querySelector(`#${highKey}-high`);
     const lowContent = lowTemp.querySelector(`#${lowKey}-low`);
-    const awarenessContent = awarenessTemp.querySelector(`#awareness-${awarenessLevel}`);
+    const awarenessContent = awarenessTemp.querySelector(`#awareness-${level}`);
 
     const finalHTML = `
       <div>
