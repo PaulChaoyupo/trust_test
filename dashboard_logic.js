@@ -73,14 +73,18 @@ function showUserData(user) {
     weightedScores[dim] = avg;
     percentMap[dimMap[dim].key] = Math.round((avg / MAX_SCORE) * 100);
   });
+const sortedDims = Object.entries(weightedScores).filter(([k]) => k !== '一致性').sort((a,b)=>b[1]-a[1]);
+const [highDim, midDim, lowDim] = [sortedDims[0][0], sortedDims[1][0], sortedDims[sortedDims.length-1][0]].map(dim => dimMap[dim].key);
+const selfAvg = dimMap['自我認知'].idxs.slice(0,3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/3;
+const otherAvg = dimMap['自我認知'].idxs.slice(3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/2;
+const awarenessGap = Math.abs(selfAvg - otherAvg);
 
-  // 自覺-他評差異
-  const selfAvg = dimMap['自我認知'].idxs.slice(0,3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/3;
-  const otherAvg = dimMap['自我認知'].idxs.slice(3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/2;
-  // 自覺層級判斷（新邏輯）
-  const selfAvg = (scores[20] + scores[21] + scores[22]) / 3;
-  const otherAvg = (scores[23] + scores[24]) / 2;
-  const awarenessGap = Math.abs(selfAvg - otherAvg);
+// 新增對應表
+const awarenessLevelMap = {
+    '高自覺': 'high',
+    '中等自覺': 'medium',
+    '低自覺': 'low'
+};
 
 let awarenessLevel = '';
 if (awarenessGap < 0.3) {
@@ -91,21 +95,9 @@ if (awarenessGap < 0.3) {
     awarenessLevel = '低自覺';
 }
 
+// 修正版 loadHTML
+loadHTML('awarenessBlock', `self_awareness_${awarenessLevelMap[awarenessLevel]}_${highDim}_${midDim}.html`);
 
-  // 一致性處理
-  const consistencyAvg = dimMap['一致性'].idxs.map(i => user.scores[i]).reduce((a,b)=>a+b,0)/6;
-  const suspicious = consistencyAvg > 4.5;
-
-  drawRadarChart(Object.keys(dimMap).filter(d => d !== '一致性'), Object.keys(dimMap).filter(d => d !== '一致性').map(d => percentMap[dimMap[d].key]));
-
-  const sortedDims = Object.entries(weightedScores).filter(([k]) => k !== '一致性').sort((a,b)=>b[1]-a[1]);
-  const [highDim, midDim, lowDim] = [sortedDims[0][0], sortedDims[1][0], sortedDims[sortedDims.length-1][0]].map(dim => dimMap[dim].key);
-
-  window.chartPercentages = percentMap;
-  loadDimensionSection(highDim, 'high', 'highBlock');
-  loadDimensionSection(midDim, 'second', 'midBlock');
-  loadDimensionSection(lowDim, 'low', 'lowBlock');
-  loadHTML('awarenessBlock', `self_awareness_${awarenessLevel}_${highDim}_${midDim}.html`);
 
   if (suspicious) {
     document.getElementById('awarenessBlock').innerHTML += `<div style="color:red; font-weight:bold;">⚠️ 注意：填答一致性偏高，請小心解讀結果</div>`;
