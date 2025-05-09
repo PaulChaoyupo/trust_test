@@ -95,6 +95,12 @@
     max-width: 100%;
     height: auto;
   }
+   .card-text {
+  font-size: clamp(0.9rem, 2.5vw, 1.2rem); /* 手機到桌機自動縮放 */
+  line-height: 1.6;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
 </style>
 </head>
 <body>
@@ -112,24 +118,28 @@
     <canvas id="radarChart" width="400" height="400"></canvas>
   </div>
 
+
+
+
+
   <div class="block" id="highBlock">
     <h3>高分構面分析</h3>
-    <div id="highContent"></div>
+    <div id="highContent" class="card-text"></div>
   </div>
 
   <div class="block" id="midBlock">
     <h3>次高分構面分析</h3>
-    <div id="midContent"></div>
+    <div id="midContent" class="card-text"></div>
   </div>
 
   <div class="block" id="lowBlock">
     <h3>低分構面分析</h3>
-    <div id="lowContent"></div>
+    <div id="lowContent" class="card-text"></div>
   </div>
 
   <div class="block" id="awarenessBlock">
     <h3>自覺層級分析</h3>
-    <div id="awarenessContent"></div>
+    <div id="awarenessContent" class="card-text"></div>
   </div>
 
   <script src="dashboard_logic.js"></script>
