@@ -1,5 +1,5 @@
-<div class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-  <!-- 左側 -->
+<div class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+  <!-- 左側：進度條 -->
   <div id="progressSection" class="bg-white rounded shadow p-4">
     <h2 class="text-2xl font-bold text-blue-700 mb-4 text-center">你的測驗結果</h2>
     <p id="basicInfo" class="text-center text-gray-600 mb-6">姓名 / 日期</p>
@@ -102,14 +102,31 @@ function analyze(user) {
       });
   });
 
+  // 自覺層級判斷：新增 selfAvg 條件，避免誤判
   const selfAvg = (scores[20] + scores[21] + scores[22]) / 3;
   const otherAvg = (scores[23] + scores[24]) / 2;
   const awarenessGap = Math.abs(selfAvg - otherAvg);
-  let level = awarenessGap < 0.3 ? 'high' : (awarenessGap < 0.8 ? 'medium' : 'low');
+  let level = '';
+  if (awarenessGap < 0.3 && selfAvg >= 3.5) {
+    level = 'high';
+  } else if (awarenessGap < 0.8 && selfAvg >= 2.5) {
+    level = 'medium';
+  } else {
+    level = 'low';
+  }
+
+  // 檔案 key 對應表，確保檔案與 ID 對應一致
+  const fileKeyMap = {
+    team: 'team',
+    execution: 'execution',
+    creativity: 'creativity',
+    workstyle: 'workstyle',
+    awareness: 'awareness'
+  };
 
   Promise.all([
-    fetch(`${highKey}_user.html`).then(r => r.text()),
-    fetch(`${lowKey}_user.html`).then(r => r.text()),
+    fetch(`${fileKeyMap[highKey]}_user.html`).then(r => r.text()),
+    fetch(`${fileKeyMap[lowKey]}_user.html`).then(r => r.text()),
     fetch(`awareness_level.html`).then(r => r.text())
   ]).then(([highText, lowText, awarenessText]) => {
     const highTemp = document.createElement('div');
@@ -120,8 +137,8 @@ function analyze(user) {
     lowTemp.innerHTML = lowText;
     awarenessTemp.innerHTML = awarenessText;
 
-    const highContent = highTemp.querySelector(`#${highKey}-high`);
-    const lowContent = lowTemp.querySelector(`#${lowKey}-low`);
+    const highContent = highTemp.querySelector(`#${fileKeyMap[highKey]}-high`);
+    const lowContent = lowTemp.querySelector(`#${fileKeyMap[lowKey]}-low`);
     const awarenessContent = awarenessTemp.querySelector(`#awareness-${level}`);
 
     const finalHTML = `
