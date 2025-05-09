@@ -8,8 +8,10 @@
 
   <!-- 右側角色區塊 -->
   <div id="roleSection" class="bg-white rounded shadow p-4 flex flex-col items-center justify-center">
-    <h3 id="roleTitle" class="text-2xl font-bold text-indigo-700 mb-4 text-center">角色名稱載入中...</h3>
-    <img id="roleImage" class="max-w-full h-auto" src="" alt="角色插圖載入中">
+    <h3 id="roleTitle" class="text-2xl font-bold text-indigo-700 mb-4 text-center bg-indigo-100 px-4 py-2 rounded-full inline-block shadow">
+      角色名稱載入中...
+    </h3>
+    <img id="roleImage" class="max-w-full h-auto rounded-lg shadow-lg border border-gray-300" src="" alt="角色插圖載入中">
   </div>
 
   <!-- 總結卡片 -->
@@ -75,19 +77,28 @@ function analyze(user) {
   document.getElementById('roleTitle').innerText = roleName;
   document.getElementById('roleImage').src = `character_${highKey}_${lowKey}.png`;
 
-  // 進度條渲染
+  // 進度條渲染（加顏色）
   dims.forEach(dim => {
     const percent = Math.round((avgScores[dim] / 6) * 100);
+    let barColor = '';
+    if (percent >= 70) {
+      barColor = 'bg-green-500';
+    } else if (percent >= 40) {
+      barColor = 'bg-yellow-400';
+    } else {
+      barColor = 'bg-red-400';
+    }
+
     const barBlock = document.createElement('div');
     barBlock.innerHTML = `
       <div class="flex justify-between mb-1">
         <span class="text-base font-medium text-gray-700">${dimNames[dim]}</span>
         <span class="text-sm text-gray-500">${percent}%</span>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
-        <div class="bg-blue-600 h-4 rounded-full" style="width: ${percent}%;"></div>
+      <div class="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
+        <div class="${barColor} h-4 rounded-full transition-all duration-500" style="width: ${percent}%;"></div>
       </div>
-      <div id="${dim}-desc" class="text-gray-600 text-sm italic">載入中...</div>
+      <div id="${dim}-desc" class="text-gray-600 text-sm italic bg-gray-50 p-2 rounded shadow-inner">載入中...</div>
     `;
     document.getElementById('progressBars').appendChild(barBlock);
 
@@ -102,7 +113,7 @@ function analyze(user) {
       });
   });
 
-  // 自覺層級判斷：新增 selfAvg 條件，避免誤判
+  // 自覺層級判斷
   const selfAvg = (scores[20] + scores[21] + scores[22]) / 3;
   const otherAvg = (scores[23] + scores[24]) / 2;
   const awarenessGap = Math.abs(selfAvg - otherAvg);
@@ -115,7 +126,6 @@ function analyze(user) {
     level = 'low';
   }
 
-  // 檔案 key 對應表，確保檔案與 ID 對應一致
   const fileKeyMap = {
     team: 'team',
     execution: 'execution',
@@ -142,14 +152,18 @@ function analyze(user) {
     const awarenessContent = awarenessTemp.querySelector(`#awareness-${level}`);
 
     const finalHTML = `
-      <div>
-        <h4 class="font-semibold text-indigo-700 mb-2">高分構面 - ${dimNames[highKey]}</h4>
-        <div>${highContent ? highContent.innerHTML : '（找不到高分敘述）'}</div>
-        <h4 class="font-semibold text-indigo-700 mt-4 mb-2">低分構面 - ${dimNames[lowKey]}</h4>
-        <div>${lowContent ? lowContent.innerHTML : '（找不到低分敘述）'}</div>
-        <h4 class="font-semibold text-indigo-700 mt-4 mb-2">自我察覺</h4>
-        <div>${awarenessContent ? awarenessContent.innerHTML : '（找不到自我察覺敘述）'}</div>
-      </div>
+      <details class="bg-gray-50 border border-gray-200 rounded mb-4 p-4">
+        <summary class="font-semibold text-indigo-700 cursor-pointer">高分構面 - ${dimNames[highKey]}</summary>
+        <div class="mt-2">${highContent ? highContent.innerHTML : '（找不到高分敘述）'}</div>
+      </details>
+      <details class="bg-gray-50 border border-gray-200 rounded mb-4 p-4">
+        <summary class="font-semibold text-indigo-700 cursor-pointer">低分構面 - ${dimNames[lowKey]}</summary>
+        <div class="mt-2">${lowContent ? lowContent.innerHTML : '（找不到低分敘述）'}</div>
+      </details>
+      <details class="bg-gray-50 border border-gray-200 rounded p-4">
+        <summary class="font-semibold text-indigo-700 cursor-pointer">自我察覺</summary>
+        <div class="mt-2">${awarenessContent ? awarenessContent.innerHTML : '（找不到自我察覺敘述）'}</div>
+      </details>
     `;
     document.querySelector('#summaryBlock > div').innerHTML = finalHTML;
   });
