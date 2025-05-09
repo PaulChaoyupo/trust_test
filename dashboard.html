@@ -5,101 +5,108 @@
   <title>Talent Sketch 才能素描後台</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
  <style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f9f9f9;
-    font-size: clamp(14px, 2.5vw, 18px);
-    line-height: 1.6;
-    word-break: break-word;
-  }
+ body {
+  font-family: Arial, sans-serif;
+  margin: 20px;
+  background-color: #f9f9f9;
+  font-size: clamp(16px, 4vw, 22px); /* ✅ 放大預設字體 */
+  line-height: 1.6;
+  word-break: break-word;
+}
 
-  h2 {
-    font-size: clamp(20px, 4vw, 32px);
-    color: #333;
-    line-height: 1.4;
-  }
+h2 {
+  font-size: clamp(20px, 4vw, 32px);
+  color: #333;
+  line-height: 1.4;
+}
 
-  h3 {
-    font-size: clamp(18px, 3.5vw, 28px);
-    color: #333;
-    line-height: 1.4;
-  }
+h3 {
+  font-size: clamp(18px, 3.5vw, 28px);
+  color: #333;
+  line-height: 1.4;
+}
 
-  section {
-    margin-bottom: 20px;
-  }
+section {
+  margin-bottom: 20px;
+}
 
-  select, input[type="date"] {
-    margin: 0 10px;
-    padding: 5px;
-    font-size: 1em; /* 跟隨 body 字體大小 */
-  }
+select, input[type="date"] {
+  margin: 0 10px;
+  padding: 5px;
+  font-size: 1em; /* 跟隨 body 字體大小 */
+}
 
-  .block {
-    background: #fff;
-    padding: 15px;
-    margin-bottom: 20px;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    width: 100%;
-    overflow-x: auto;
-  }
+.block {
+  background: #fff;
+  padding: 15px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  width: 100%;
+  overflow-x: auto;
+}
 
-  .progress-bar {
-    width: 100%;
-    background: #eee;
-    height: 10px;
-    border-radius: 5px;
-    margin: 10px 0;
-  }
+.progress-bar {
+  width: 100%;
+  background: #eee;
+  height: 10px;
+  border-radius: 5px;
+  margin: 10px 0;
+}
 
-  .progress-fill {
-    height: 10px;
-    border-radius: 5px;
-  }
+.progress-fill {
+  height: 10px;
+  border-radius: 5px;
+}
 
-  .progress-fill.low { background: #f08080; }
-  .progress-fill.mid { background: #f0ad4e; }
-  .progress-fill.high { background: #5cb85c; }
+.progress-fill.low { background: #f08080; }
+.progress-fill.mid { background: #f0ad4e; }
+.progress-fill.high { background: #5cb85c; }
 
-  .awareness-box {
-    background: #f0f8ff;
-    border-left: 4px solid #2170a3;
-    padding: 10px;
-    margin: 20px 0;
-  }
+.awareness-box {
+  background: #f0f8ff;
+  border-left: 4px solid #2170a3;
+  padding: 10px;
+  margin: 20px 0;
+}
 
-  .tooltip {
-    position: relative;
-    cursor: pointer;
-    border-bottom: 1px dotted #333;
-  }
+.tooltip {
+  position: relative;
+  cursor: pointer;
+  border-bottom: 1px dotted #333;
+}
 
-  .tooltip:hover::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    left: 0;
-    top: 100%;
-    background: #333;
-    color: #fff;
-    padding: 5px;
-    font-size: 0.75em;
-    white-space: nowrap;
-    border-radius: 3px;
-    margin-top: 5px;
-    z-index: 10;
-  }
+.tooltip:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: 0;
+  top: 100%;
+  background: #333;
+  color: #fff;
+  padding: 5px;
+  font-size: 0.75em;
+  white-space: nowrap;
+  border-radius: 3px;
+  margin-top: 5px;
+  z-index: 10;
+}
 
-  canvas {
-    max-width: 100%;
-    height: auto;
-  }
-   .card-text {
-  font-size: clamp(0.9rem, 2.5vw, 1.2rem); /* 手機到桌機自動縮放 */
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+.card-text {
+  font-size: clamp(1rem, 4vw, 1.5rem); /* ✅ 放大敘述字體 */
   line-height: 1.6;
   overflow-wrap: break-word;
   word-break: break-word;
+}
+
+/* ✅ 閱讀模式 */
+body.reading-mode .card-text {
+  font-size: 1.8rem;
+  line-height: 2;
 }
 </style>
 </head>
@@ -113,7 +120,7 @@
       <option>請先選擇日期</option>
     </select>
   </section>
-
+<button id="toggleReadingMode">切換閱讀模式</button>
   <div class="block">
     <canvas id="radarChart" width="400" height="400"></canvas>
   </div>
@@ -143,5 +150,22 @@
   </div>
 
   <script src="dashboard_logic.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // 橫向提示
+  if (window.innerWidth < 400) {
+    alert('📱 提示：為了獲得更佳閱讀體驗，建議您將手機橫向瀏覽。');
+  }
+
+  // 閱讀模式切換
+  const toggleBtn = document.getElementById('toggleReadingMode');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      document.body.classList.toggle('reading-mode');
+    });
+  }
+});
+</script>
+
 </body>
 </html>
