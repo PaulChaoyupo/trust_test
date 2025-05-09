@@ -78,6 +78,20 @@ const [highDim, midDim, lowDim] = [sortedDims[0][0], sortedDims[1][0], sortedDim
 const selfAvg = dimMap['自我認知'].idxs.slice(0,3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/3;
 const otherAvg = dimMap['自我認知'].idxs.slice(3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/2;
 const awarenessGap = Math.abs(selfAvg - otherAvg);
+const consistencyAvg = dimMap['一致性'].idxs.map(i => user.scores[i]).reduce((a,b)=>a+b,0)/6;
+const consistencyStd = Math.sqrt(dimMap['一致性'].idxs.map(i => Math.pow(user.scores[i] - consistencyAvg, 2)).reduce((a,b)=>a+b,0)/6);
+
+let suspicious = false;
+let suspiciousLevel = '';
+
+if (consistencyAvg > 4.5 || consistencyStd < 0.5) {
+    suspicious = true;
+    suspiciousLevel = '高風險';
+} else if (consistencyAvg > 4.0) {
+    suspicious = true;
+    suspiciousLevel = '中等風險';
+}
+
 
 // 新增對應表
 const awarenessLevelMap = {
@@ -94,14 +108,21 @@ if (awarenessGap < 0.3) {
 } else {
     awarenessLevel = '低自覺';
 }
+// 進度條資料
+window.chartPercentages = percentMap;
+
+// 載入高分/次高分/低分構面
+loadDimensionSection(highDim, 'high', 'highContent');
+loadDimensionSection(midDim, 'second', 'midContent');
+loadDimensionSection(lowDim, 'low', 'lowContent');
 
 // 修正版 loadHTML
 loadHTML('awarenessBlock', `self_awareness_${awarenessLevelMap[awarenessLevel]}_${highDim}_${midDim}.html`);
 
 
   if (suspicious) {
-    document.getElementById('awarenessBlock').innerHTML += `<div style="color:red; font-weight:bold;">⚠️ 注意：填答一致性偏高，請小心解讀結果</div>`;
-  }
+    document.getElementById('awarenessBlock').innerHTML += `<div style="color:red; font-weight:bold;">⚠️ 注意：填答一致性${suspiciousLevel}，請小心解讀結果</div>`;
+}
 }
 
 function drawRadarChart(labels, percentData) {
