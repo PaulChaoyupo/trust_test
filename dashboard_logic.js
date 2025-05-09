@@ -101,16 +101,22 @@ const awarenessLevelMap = {
 };
 
 let awarenessLevel = '';
-if (awarenessGap < 0.3) {
+if (awarenessGap < 0.3 && selfAvg >= 3.5) {
     awarenessLevel = '高自覺';
-} else if (awarenessGap < 0.8) {
+} else if (awarenessGap < 0.8 && selfAvg >= 2.5) {
     awarenessLevel = '中等自覺';
 } else {
     awarenessLevel = '低自覺';
 }
+
 // 進度條資料
 window.chartPercentages = percentMap;
 
+  // ➕ 繪製雷達圖
+drawRadarChart(
+  Object.keys(dimMap).filter(d => d !== '一致性'),
+  Object.keys(dimMap).filter(d => d !== '一致性').map(d => percentMap[dimMap[d].key])
+);
 // 載入高分/次高分/低分構面
 loadDimensionSection(highDim, 'high', 'highContent');
 loadDimensionSection(midDim, 'second', 'midContent');
