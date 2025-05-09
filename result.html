@@ -144,11 +144,11 @@ function renderResult(user) {
 
     const summaryHTML = `
       <div>
-        <h4 class="font-semibold text-indigo-700 mb-2">高分構面 - ${dimNames[highKey]}</h4>
+        <h4 class="font-semibold text-indigo-700 mb-2">優勢能力 - ${dimNames[highKey]}</h4>
         <div>${highContent ? highContent.innerHTML : '（找不到高分敘述）'}</div>
-        <h4 class="font-semibold text-indigo-700 mt-4 mb-2">低分構面 - ${dimNames[lowKey]}</h4>
+        <h4 class="font-semibold text-indigo-700 mt-4 mb-2">弱項能力 - ${dimNames[lowKey]}</h4>
         <div>${lowContent ? lowContent.innerHTML : '（找不到低分敘述）'}</div>
-        <h4 class="font-semibold text-indigo-700 mt-4 mb-2">自我察覺</h4>
+        <h4 class="font-semibold text-indigo-700 mt-4 mb-2">自覺程度</h4>
         <div>${awarenessContent ? awarenessContent.innerHTML : '（找不到自我察覺敘述）'}</div>
       </div>
     `;
