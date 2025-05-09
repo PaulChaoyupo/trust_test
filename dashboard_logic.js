@@ -113,10 +113,12 @@ if (awarenessGap < 0.3 && selfAvg >= 3.5) {
 window.chartPercentages = percentMap;
 
   // ➕ 繪製雷達圖
-drawRadarChart(
-  Object.keys(dimMap).filter(d => d !== '一致性'),
-  Object.keys(dimMap).filter(d => d !== '一致性').map(d => percentMap[dimMap[d].key])
-);
+const radarLabels = ['人際互動', '積極程度', '創意思考', '工作展現', '自我察覺'];
+const radarKeys = ['team', 'execution', 'creativity', 'workstyle', 'awareness'];
+const radarData = radarKeys.map(key => percentMap[key]);
+
+drawRadarChart(radarLabels, radarData);
+
 // 載入高分/次高分/低分構面
 loadDimensionSection(highDim, 'high', 'highContent');
 loadDimensionSection(midDim, 'second', 'midContent');
