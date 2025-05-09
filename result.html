@@ -1,21 +1,31 @@
-<div class="max-w-6xl mx-auto p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-  <!-- 左側：進度條 -->
-  <div id="progressSection" class="bg-white rounded shadow p-4">
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>Talent Sketch 測驗結果</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-6">
+
+<div class="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+  <!-- 左側進度條區塊 -->
+  <div class="bg-white rounded shadow p-6">
     <h2 class="text-2xl font-bold text-blue-700 mb-4 text-center">你的測驗結果</h2>
     <p id="basicInfo" class="text-center text-gray-600 mb-6">姓名 / 日期</p>
     <div id="progressBars" class="space-y-6"></div>
   </div>
 
   <!-- 右側角色區塊 -->
-  <div id="roleSection" class="bg-white rounded shadow p-4 flex flex-col items-center justify-center">
+  <div class="bg-white rounded shadow p-6 flex flex-col items-center justify-center">
     <h3 id="roleTitle" class="text-2xl font-bold text-indigo-700 mb-4 text-center">角色名稱載入中...</h3>
-    <img id="roleImage" class="max-w-full h-auto rounded" src="" alt="角色插圖載入中">
+    <img id="roleImage" class="max-w-full h-auto rounded shadow" src="" alt="角色插圖載入中">
   </div>
 
-  <!-- 總結卡片 -->
-  <div id="summaryBlock" class="bg-white rounded shadow p-4 mt-6 col-span-1 md:col-span-2">
+  <!-- 總結卡片區塊 -->
+  <div class="bg-white rounded shadow p-6 mt-6 col-span-1 md:col-span-2">
     <h3 class="text-xl font-semibold mb-2 text-indigo-700">總結分析</h3>
-    <div class="text-gray-700 leading-relaxed space-y-4">載入中...</div>
+    <div id="summaryContent" class="text-gray-700 leading-relaxed">載入中...</div>
   </div>
 </div>
 
@@ -42,11 +52,11 @@ if (!userId) {
     }
     const user = data[0];
     if (typeof user.scores === 'string') user.scores = JSON.parse(user.scores);
-    analyze(user);
+    renderResult(user);
   });
 }
 
-function analyze(user) {
+function renderResult(user) {
   document.getElementById("basicInfo").innerText = `${user.name || '匿名使用者'}｜${user.date}`;
 
   const dims = ['team', 'execution', 'creativity', 'workstyle', 'awareness'];
@@ -68,22 +78,24 @@ function analyze(user) {
 
   const sortedDims = Object.entries(avgScores).sort((a, b) => b[1] - a[1]);
   const [highKey, lowKey] = [sortedDims[0][0], sortedDims[sortedDims.length - 1][0]];
+
+  // 角色呈現
   const roleKey = `${highKey}_${lowKey}`;
   const roleName = roleNameMap[roleKey] || '個人化角色';
   document.getElementById('roleTitle').innerText = roleName;
   document.getElementById('roleImage').src = `character_${highKey}_${lowKey}.png`;
 
+  // 進度條 + 敘述
   dims.forEach(dim => {
     const percent = Math.round((avgScores[dim] / 6) * 100);
     const barBlock = document.createElement('div');
-    const colorClass = percent >= 70 ? 'bg-green-500' : (percent >= 40 ? 'bg-yellow-500' : 'bg-red-500');
     barBlock.innerHTML = `
       <div class="flex justify-between mb-1">
         <span class="text-base font-medium text-gray-700">${dimNames[dim]}</span>
         <span class="text-sm text-gray-500">${percent}%</span>
       </div>
-      <div class="w-full bg-gray-200 rounded-full h-4 mb-2 overflow-hidden">
-        <div class="${colorClass} h-4 transition-all duration-500" style="width: ${percent}%"></div>
+      <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+        <div class="h-4 rounded-full ${percent >= 70 ? 'bg-green-500' : percent >= 40 ? 'bg-yellow-400' : 'bg-red-400'}" style="width: ${percent}%;"></div>
       </div>
       <div id="${dim}-desc" class="text-gray-600 text-sm italic">載入中...</div>
     `;
@@ -100,6 +112,7 @@ function analyze(user) {
       });
   });
 
+  // 總結組合
   const selfAvg = (scores[20] + scores[21] + scores[22]) / 3;
   const otherAvg = (scores[23] + scores[24]) / 2;
   const awarenessGap = Math.abs(selfAvg - otherAvg);
@@ -129,17 +142,20 @@ function analyze(user) {
     const lowContent = lowTemp.querySelector(`#${lowKey}-low`);
     const awarenessContent = awarenessTemp.querySelector(`#awareness-${level}`);
 
-    const finalHTML = `
+    const summaryHTML = `
       <div>
         <h4 class="font-semibold text-indigo-700 mb-2">高分構面 - ${dimNames[highKey]}</h4>
-        <div class="text-gray-700 leading-relaxed mb-4">${highContent ? highContent.innerHTML : '（找不到高分敘述）'}</div>
+        <div>${highContent ? highContent.innerHTML : '（找不到高分敘述）'}</div>
         <h4 class="font-semibold text-indigo-700 mt-4 mb-2">低分構面 - ${dimNames[lowKey]}</h4>
-        <div class="text-gray-700 leading-relaxed mb-4">${lowContent ? lowContent.innerHTML : '（找不到低分敘述）'}</div>
+        <div>${lowContent ? lowContent.innerHTML : '（找不到低分敘述）'}</div>
         <h4 class="font-semibold text-indigo-700 mt-4 mb-2">自我察覺</h4>
-        <div class="text-gray-700 leading-relaxed">${awarenessContent ? awarenessContent.innerHTML : '（找不到自我察覺敘述）'}</div>
+        <div>${awarenessContent ? awarenessContent.innerHTML : '（找不到自我察覺敘述）'}</div>
       </div>
     `;
-    document.querySelector('#summaryBlock > div').innerHTML = finalHTML;
+    document.getElementById('summaryContent').innerHTML = summaryHTML;
   });
 }
 </script>
+
+</body>
+</html>
