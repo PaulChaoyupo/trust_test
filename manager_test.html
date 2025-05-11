@@ -1,0 +1,96 @@
+
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>主管評分表｜員工偏誤分析</title>
+  <script src="questions_manager_bias.js"></script>
+  <style>
+    body { font-family: 'Noto Sans TC', sans-serif; padding: 2rem; background: #f4f4f4; color: #333; max-width: 960px; margin: auto; }
+    h2 { text-align: center; color: #1d3557; margin-bottom: 1.5rem; }
+    label { font-weight: 500; display: block; margin-top: 1rem; }
+    input, select {
+      padding: 0.6rem; border-radius: 8px; border: 1px solid #ccc; width: 100%; font-size: 1rem;
+    }
+    .question { background: #fff; padding: 1.2rem; margin: 1rem 0; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.05); }
+    .question strong { display: block; margin-bottom: 0.6rem; color: #1d3557; font-size: 1.05rem; }
+    .likert { display: flex; justify-content: space-between; margin-top: 0.5rem; }
+    .likert label { text-align: center; flex: 1; font-size: 0.9rem; }
+    .likert input { display: none; }
+    .likert span.circle {
+      display: inline-block; width: 36px; height: 36px; line-height: 36px;
+      background: #ddd; border-radius: 50%; text-align: center;
+      transition: all 0.3s ease;
+    }
+    .likert input:checked + span.circle {
+      background: #457b9d; color: white; transform: scale(1.1);
+    }
+    button {
+      background: #457b9d; color: white; padding: 1rem; border: none;
+      border-radius: 10px; font-size: 1.1rem; margin-top: 2rem; width: 100%;
+    }
+    button:hover { background: #1d3557; }
+  </style>
+</head>
+<body>
+  <h2>主管評估填寫表</h2>
+  <label for="employeeName">請選擇受評員工姓名：</label>
+  <input type="text" id="employeeName" placeholder="例如：王小明" />
+  <label for="reviewDate">填寫日期：</label>
+  <input type="date" id="reviewDate" />
+
+  <div id="questionContainer"></div>
+  <button onclick="submitReview()">送出主管評估</button>
+
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      const container = document.getElementById("questionContainer");
+      window.questions.forEach((q, i) => {
+        const div = document.createElement("div");
+        div.className = "question";
+        div.innerHTML = '<strong>' + q.text + '</strong><div class="likert">' +
+          window.options.map(opt => `
+            <label>
+              <input type="radio" name="q${i}" value="${opt.value}" />
+              <span class="circle">${opt.value}</span>
+            </label>`).join('') +
+          '</div>';
+        container.appendChild(div);
+      });
+    });
+
+    function submitReview() {
+      const name = document.getElementById("employeeName").value.trim();
+      const date = document.getElementById("reviewDate").value;
+      if (!name || !date) return alert("請填寫姓名與日期");
+
+      const scores = [];
+      for (let i = 0; i < window.questions.length; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (!selected) return alert(`第 ${i+1} 題尚未填寫`);
+        scores.push(Number(selected.value));
+      }
+
+      const payload = { name, date, type: "manager_bias", scores };
+
+      fetch("https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/reviews", {
+        method: "POST",
+        headers: {
+          "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc",
+          "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc",
+          "Content-Type": "application/json",
+          "Prefer": "return=representation"
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.json())
+      .then(data => {
+        alert("✅ 已成功送出主管評估！");
+        window.location.href = "review_result.html?name=" + encodeURIComponent(name);
+      })
+      .catch(err => alert("❌ 送出錯誤：" + err.message));
+    }
+  </script>
+</body>
+</html>
