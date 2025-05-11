@@ -139,5 +139,30 @@
     });
   }
 </script>
+<!-- 匯出 PDF 所需 JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<!-- PDF 匯出按鈕 -->
+<button onclick="downloadPDF()" style="position: fixed; bottom: 24px; right: 24px; background: #1d3557; color: white; padding: 0.8rem 1.2rem; font-size: 1rem; border: none; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; z-index: 999;">
+  📄 下載 PDF 報告
+</button>
+
+<!-- 匯出邏輯 -->
+<script>
+function downloadPDF() {
+  const params = new URLSearchParams(window.location.search);
+  const name = params.get("name") || "未知";
+  const department = params.get("department") || "未填";
+  const today = new Date().toISOString().slice(0,10);
+  const filename = `偏誤風險分析_${department}_${name}_${today}.pdf`;
+
+  html2pdf().from(document.body).set({
+    margin: 0.3,
+    filename: filename,
+    html2canvas: { scale: 2 },
+    jsPDF: { format: 'a4', orientation: 'portrait' }
+  }).save();
+}
+</script>
 </body>
 </html>
