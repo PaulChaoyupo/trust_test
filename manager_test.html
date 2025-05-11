@@ -38,8 +38,8 @@
   <input type="text" id="employeeName" placeholder="員工姓名" />
   <label for="employeeDept">請輸入受評員工部門：</label>
   <input type="text" id="employeeDept" placeholder="例如：行銷部／客服中心" />
-   <label for="employeeDept">請輸入評鑑主管姓名：</label>
-  <input type="text" id="employeeDept" placeholder="主管姓名" />
+  <label for="reviewerName">請輸入評鑑主管姓名：</label>
+  <input type="text" id="reviewerName" placeholder="主管姓名" />
   <label for="reviewDate">填寫日期：</label>
   <input type="date" id="reviewDate" />
 
@@ -66,6 +66,7 @@
     function submitReview() {
       const name = document.getElementById("employeeName").value.trim();
       const department = document.getElementById("employeeDept").value.trim();
+      const reviewer = document.getElementById("reviewerName").value.trim();
       const date = document.getElementById("reviewDate").value;
       if (!name || !date || !department) return alert("請填寫姓名、部門與日期");
 
@@ -76,7 +77,7 @@
         scores.push(Number(selected.value));
       }
 
-      const payload = { name, department, date, type: "manager_bias", scores };
+      const payload = { name, department, reviewer_name: reviewer, date, type: "manager_bias", scores };
 
       fetch("https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/reviews", {
         method: "POST",
