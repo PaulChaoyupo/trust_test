@@ -65,13 +65,13 @@
   <div class="intro">
     <label for="userName">請輸入您的姓名：</label>
     <input type="text" id="userName" placeholder="例如：王小明" />
-    <label for="testDate">請選擇您的測驗日期：</label>
+    <label for="testDate">請選擇您的填寫日期：</label>
     <input type="date" id="testDate" />
 
     <label for="testType">請選擇測驗用途：</label>
     <select id="testType">
-      <option value="interview">面試測驗</option>
-      <option value="evaluation">年度評鑑</option>
+      <option value="interview">面試建檔</option>
+      <option value="evaluation">內部評鑑</option>
     </select>
 
     <div id="evaluationFields" style="display:none;">
@@ -177,7 +177,7 @@ const scores = [];
       .then(async res => {
     const data = await res.json();
     if (!res.ok) {
-      alert(`❌ Supabase 錯誤：${data.message || JSON.stringify(data)}`);
+      alert(`Supabase 錯誤：${data.message || JSON.stringify(data)}`);
       return;
     }
     const insertedId = data[0]?.ID;
@@ -188,7 +188,7 @@ const scores = [];
     }
 })
       .catch(error => {
-        alert("❌ Supabase 網路錯誤：" + error.message);
+        alert("Supabase 網路錯誤：" + error.message);
       });
     }
   </script>
