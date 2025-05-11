@@ -8,13 +8,12 @@
     body { font-family: 'Noto Sans TC', sans-serif; margin: 0 auto; padding: 2rem; max-width: 960px; background: #f9f9f9; color: #333; }
     h2 { text-align: center; color: #1d3557; margin-bottom: 0.5rem; }
     .meta { text-align: center; font-size: 0.95rem; margin-bottom: 2rem; color: #555; }
-    .chart-section { background: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+    .chart-section, .summary-section { background: #fff; border-radius: 12px; padding: 1.5rem; margin-bottom: 2rem; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
     canvas { width: 100%; max-width: 800px; margin: auto; display: block; }
     .bias-labels { display: flex; justify-content: space-around; margin-top: 1rem; font-size: 0.9rem; color: #777; }
     .bias-desc { margin-top: 1.5rem; }
     .bias-block { margin-bottom: 2rem; padding: 1rem; background: #fefefe; border-left: 6px solid #457b9d; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
     .bias-block h4 { margin: 0 0 0.5rem 0; color: #1d3557; }
-    .summary-section { display: flex; flex-direction: column; gap: 1.5rem; }
     .summary-card { background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
     .summary-card h3 { margin-bottom: 0.6rem; color: #1d3557; }
   </style>
@@ -35,6 +34,7 @@
   </div>
 
   <div class="summary-section" id="summaryCards"></div>
+
 <script>
   const params = new URLSearchParams(window.location.search);
   const name = params.get("name");
@@ -61,7 +61,7 @@
       const self = resData[0], mgr = revData[0];
       const selfScores = self.scores;
       const mgrScores = mgr.scores;
-      document.getElementById("metaInfo").innerText = `部門：${self.department || "－"}｜員工：${self.name}｜主管：${mgr.reviewer_name || "未填寫"}`;
+      document.getElementById("metaInfo").innerText = `部門：${self.department}｜員工：${self.name}｜主管：${mgr.reviewer_name || "未填寫"}`;
 
       const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
       const biasData = [
@@ -71,7 +71,6 @@
         { key: "humility", label: "過度謙遜", self: avg(selfScores.slice(20,23)), mgr: avg(mgrScores.slice(9,12)) }
       ];
 
-      // 畫圖
       const ctx = document.getElementById("biasChart").getContext("2d");
       new Chart(ctx, {
         type: 'bar',
@@ -85,15 +84,23 @@
         options: {
           scales: {
             y: {
-              min: 1,
-              max: 6,
+              min: 1, max: 6,
               title: { display: true, text: "平均分數（1~6）" }
             }
           }
         }
       });
 
-      // 加載四模組等級敘述
+      const weightMap = { overconfidence: 2, visibility: 1.5, responsibility: 1.2, humility: 1 };
+      const diffs = biasData.map(d => ({
+        key: d.key,
+        diff: d.self - d.mgr,
+        self: d.self,
+        mgr: d.mgr,
+        score: Math.abs(d.self - d.mgr) * 0.6 + (d.self > d.mgr ? 0.4 : 0.2) * weightMap[d.key]
+      }));
+      diffs.sort((a, b) => b.score - a.score);
+
       biasData.forEach(d => {
         const diff = d.self - d.mgr;
         const level = Math.abs(diff) >= 1 ? "high" : Math.abs(diff) >= 0.5 ? "mid" : "low";
@@ -110,9 +117,6 @@
           });
       });
 
-      // 載入總結模組
-      const diffs = biasData.map(d => ({ key: d.key, diff: d.self - d.mgr }));
-      diffs.sort((a,b) => Math.abs(b.diff) - Math.abs(a.diff));
       const mainKey = diffs[0].key;
       const secondKey = diffs[1].key;
       const mid = Math.abs(diffs[1].diff) >= 0.5 ? "-mid" : "";
