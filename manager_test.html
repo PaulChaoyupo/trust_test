@@ -89,7 +89,7 @@
       .then(res => res.json())
       .then(data => {
         alert("已成功送出主管評估！");
-        window.location.href = "review_result.html?name=" + encodeURIComponent(name) + "&department=" + encodeURIComponent(department);
+        window.location.href = "bias_result.html?name=" + encodeURIComponent(name) + "&department=" + encodeURIComponent(department);
       })
       .catch(err => alert("送出錯誤：" + err.message));
     }
