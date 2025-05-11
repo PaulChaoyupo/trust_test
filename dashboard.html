@@ -9,19 +9,19 @@
   font-family: Arial, sans-serif;
   margin: 20px;
   background-color: #f9f9f9;
-  font-size: clamp(15px, 2.5vw, 19px);
+  font-size: clamp(15px, 2.5vw, 18px);
   line-height: 1.6;
   word-break: break-word;
 }
 
 h2 {
-  font-size: clamp(18px, 3vw, 28px);
+  font-size: clamp(18px, 3vw, 24px);
   color: #333;
   line-height: 1.4;
 }
 
 h3 {
-  font-size: clamp(17px, 2.5vw, 24px);
+  font-size: clamp(17px, 2.5vw, 22px);
   color: #333;
   line-height: 1.4;
 }
@@ -97,7 +97,7 @@ canvas {
 }
 
 .card-text {
-  font-size: clamp(1rem, 2.6vw, 1.3rem);
+  font-size: clamp(15px, 2.2vw, 18px);
   line-height: 1.7;
   overflow-wrap: break-word;
   word-break: break-word;
@@ -108,7 +108,64 @@ body.reading-mode .card-text {
   font-size: 1.8rem;
   line-height: 2;
 }
-</style>
+body.dark-mode {
+  background-color: #1e1e1e;
+  color: #e0e0e0;
+}
+
+body.dark-mode .block {
+  background-color: #2a2a2a;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+}
+
+body.dark-mode h2,
+body.dark-mode h3,
+body.dark-mode label {
+  color: #f0f0f0;
+}
+
+body.dark-mode select,
+body.dark-mode input[type="date"] {
+  background-color: #333;
+  color: #f0f0f0;
+  border: 1px solid #555;
+}
+
+body.dark-mode .tooltip:hover::after {
+  background: #eee;
+  color: #111;
+}
+
+body.dark-mode #toggleThemeBtn {
+  background: #444;
+  color: #fff;
+  border: 1px solid #666;
+}
+/* ✅ 按鈕區域排版 */
+.button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+/* ✅ 兩顆切換按鈕統一樣式 */
+.button-group button {
+  font-size: clamp(14px, 2.5vw, 18px);
+  padding: 0.6em 1.2em;
+  border: none;
+  border-radius: 8px;
+  background-color: #1d3557;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.button-group button:hover {
+  background-color: #457b9d;
+}
+
+ </style>
 </head>
 <body>
   <h2>分析儀表板</h2>
@@ -120,7 +177,10 @@ body.reading-mode .card-text {
       <option>請先選擇日期</option>
     </select>
   </section>
-<button id="toggleReadingMode">切換閱讀模式</button>
+ <div class="button-group">
+  <button id="toggleThemeBtn">切換主題 🌙</button>
+  <button id="toggleReadingMode">切換閱讀模式</button>
+</div>
   <div class="block">
     <canvas id="radarChart" width="400" height="400"></canvas>
   </div>
@@ -150,6 +210,7 @@ body.reading-mode .card-text {
   </div>
 
   <script src="dashboard_logic.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   // 橫向提示
@@ -164,8 +225,22 @@ document.addEventListener('DOMContentLoaded', () => {
       document.body.classList.toggle('reading-mode');
     });
   }
+
+  // 暗色主題切換
+  const themeBtn = document.getElementById('toggleThemeBtn');
+  if (themeBtn) {
+    themeBtn.addEventListener('click', () => {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('prefersDarkMode', document.body.classList.contains('dark-mode'));
+    });
+  }
+
+  // 自動載入主題偏好
+  const prefersDark = localStorage.getItem('prefersDarkMode') === 'true';
+  if (prefersDark) {
+    document.body.classList.add('dark-mode');
+  }
 });
 </script>
-
 </body>
 </html>
