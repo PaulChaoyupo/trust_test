@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>管理員帳號審核</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 2rem; background: #f9f9f9; }
+    h2 { text-align: center; color: #1d3557; }
+    .hidden { display: none; }
+    .section { background: white; padding: 1rem; margin-top: 1.5rem; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    input, button {
+      padding: 10px; width: 100%; margin: 10px 0;
+      border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;
+    }
+    button { background-color: #457b9d; color: white; border: none; }
+    button:hover { background-color: #1d3557; }
+    .item { padding: 1rem; border-bottom: 1px solid #ddd; }
+    .item span { display: inline-block; min-width: 200px; }
+  </style>
+</head>
+<body>
+  <h2>🔐 管理員帳號審核</h2>
+
+  <!-- 密碼驗證區 -->
+  <div class="section" id="authSection">
+    <input type="password" id="adminPass" placeholder="請輸入管理密碼" />
+    <button onclick="verify()">進入審核後台</button>
+    <p id="msg" style="color:red;"></p>
+  </div>
+
+  <!-- 帳號審核區 -->
+  <div class="section hidden" id="approvalSection">
+    <h3>待審核帳號清單</h3>
+    <div id="pendingList">載入中...</div>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = 'Y7i9t159W7qi@@'; // 🔑 改成你自己的密碼
+    const supabase = supabase.createClient(
+      'https://wnbvamrjoydduriwaetd.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
+    );
+
+    function verify() {
+      const pass = document.getElementById('adminPass').value;
+      const msg = document.getElementById('msg');
+      if (pass !== ADMIN_PASSWORD) {
+        msg.textContent = '❌ 密碼錯誤';
+        return;
+      }
+      document.getElementById('authSection').classList.add('hidden');
+      document.getElementById('approvalSection').classList.remove('hidden');
+      loadPendingUsers();
+    }
+
+    async function loadPendingUsers() {
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, email, role, approved')
+        .eq('approved', false);
+
+      const list = document.getElementById('pendingList');
+      list.innerHTML = '';
+
+      if (!data || data.length === 0) {
+        list.innerHTML = '<p>✅ 目前沒有待審核帳號</p>';
+        return;
+      }
+
+      data.forEach(user => {
+        const div = document.createElement('div');
+        div.className = 'item';
+        div.innerHTML = `
+          <span>${user.email}</span>
+          <select id="role-${user.id}">
+            <option value="manager">manager</option>
+            <option value="admin">admin</option>
+          </select>
+          <button onclick="approveUser('${user.id}')">核准</button>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    async function approveUser(userId) {
+      const role = document.getElementById(`role-${userId}`).value;
+
+      const { error } = await supabase
+        .from('users')
+        .update({ approved: true, role })
+        .eq('id', userId);
+
+      if (!error) {
+        alert('✅ 已核准');
+        loadPendingUsers();
+      } else {
+        alert('❌ 發生錯誤');
+      }
+    }
+  </script>
+</body>
+</html>
