@@ -242,5 +242,39 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
+<!-- ✅ Admin 專用：返回首頁按鈕 -->
+<div id="adminBackButton" style="
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 999;
+  background-color: #457b9d;
+  color: white;
+  padding: 0.8rem 1.2rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  display: none;
+">
+  🔙 返回首頁
+</div>
+<script>
+  const role = localStorage.getItem('role');
+  const email = localStorage.getItem('email');
+
+  if (!email || !role) {
+    // 未登入直接導回首頁
+    window.location.href = 'result_selector.html';
+  }
+
+  if (role === 'admin') {
+    document.getElementById('adminBackButton').style.display = 'block';
+  }
+
+  document.getElementById('adminBackButton').addEventListener('click', () => {
+    window.location.href = 'result_selector.html';
+  });
+</script>
 </body>
 </html>
