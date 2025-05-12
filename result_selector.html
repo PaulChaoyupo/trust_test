@@ -71,7 +71,7 @@
   </div>
 
   <script>
-    const supabase = supabase.createClient(
+    const client = supabase.createClient(
       'https://wnbvamrjoydduriwaetd.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
     );
@@ -82,21 +82,19 @@
       const msg = document.getElementById('authMessage');
       msg.textContent = '';
 
-      const { data: session, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: session, error } = await client.auth.signInWithPassword({ email, password });
       if (error) {
         msg.textContent = '❌ 登入失敗：' + error.message;
         return;
       }
 
-      // 取得登入者的 UUID
       const user = session.user;
       if (!user) {
         msg.textContent = '❌ 找不到登入資訊';
         return;
       }
 
-      // 查詢對應的使用者資料
-      const { data: userInfo, error: userError } = await supabase
+      const { data: userInfo, error: userError } = await client
         .from('users')
         .select('role, approved')
         .eq('id', user.id)
@@ -128,7 +126,7 @@
         return;
       }
 
-      const { data: regResult, error } = await supabase.auth.signUp({ email, password });
+      const { data: regResult, error } = await client.auth.signUp({ email, password });
       if (error) {
         msg.textContent = '❌ 註冊失敗：' + error.message;
         return;
@@ -136,7 +134,7 @@
 
       const user = regResult.user;
       if (user) {
-        await supabase.from('users').insert([{ id: user.id, email, name, department: dept, approved: false }]);
+        await client.from('users').insert([{ id: user.id, email, name, department: dept, approved: false }]);
         msg.textContent = '✅ 註冊成功，請等待管理員審核。';
       } else {
         msg.textContent = '⚠️ 無法取得帳號資訊，請稍後再試';
