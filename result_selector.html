@@ -1,44 +1,73 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <title>才能素描登入與查詢頁</title>
+  <meta charset="UTF-8" />
+  <title>才能素描查詢系統</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { font-family: sans-serif; max-width: 500px; margin: auto; padding: 2rem; background: #f8f9fa; }
-    h2 { text-align: center; color: #1d3557; }
-    input, button, select {
-      width: 100%; padding: 10px; margin: 10px 0;
-      font-size: 1rem; border-radius: 6px; border: 1px solid #ccc;
+    body {
+      font-family: sans-serif;
+      max-width: 500px;
+      margin: auto;
+      padding: 2rem;
+      background: #f8f9fa;
     }
-    button { background-color: #457b9d; color: white; border: none; }
-    button:hover { background-color: #1d3557; }
-    .hidden { display: none; }
-    .section { background: white; padding: 1rem; margin-top: 1.5rem; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+    h2 {
+      text-align: center;
+      color: #1d3557;
+    }
+    input, button, select {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      font-size: 1rem;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #457b9d;
+      color: white;
+      border: none;
+    }
+    button:hover {
+      background-color: #1d3557;
+    }
+    .hidden {
+      display: none;
+    }
+    .section {
+      background: white;
+      padding: 1rem;
+      margin-top: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
   </style>
 </head>
 <body>
   <h2>才能素描查詢系統</h2>
 
-  <!-- 登入區塊 -->
+  <!-- 登入/註冊 -->
   <div class="section" id="auth-section">
     <input type="email" id="email" placeholder="Email" />
     <input type="password" id="password" placeholder="密碼" />
+    <input type="text" id="regName" placeholder="（註冊）姓名" />
+    <input type="text" id="regDept" placeholder="（註冊）部門" />
     <button onclick="login()">登入</button>
     <button onclick="register()">申請帳號</button>
-    <p id="authMessage" style="color:red; text-align:center;"></p>
+    <p id="authMessage" style="color: red; text-align: center;"></p>
   </div>
 
-  <!-- 查詢與功能按鈕區塊 -->
+  <!-- 查詢功能 -->
   <div class="section hidden" id="query-section">
     <p>歡迎，<span id="roleLabel"></span> 使用者</p>
     <input type="text" id="nameInput" placeholder="姓名" />
     <input type="text" id="departmentInput" placeholder="部門" />
     <input type="date" id="dateInput" />
 
-    <button onclick="goTo('result.html')">查看受測結果頁</button>
-    <button onclick="goTo('dashboard.html')">查看職能分析頁</button>
-    <button id="biasBtn" class="hidden" onclick="goTo('bias_result.html')">查看落差分析頁</button>
+    <button onclick="goTo('result.html')">查看受測者結果</button>
+    <button onclick="goTo('dashboard.html')">查看能力分析</button>
+    <button id="biasBtn" class="hidden" onclick="goTo('bias_result.html')">查看落差分析</button>
   </div>
 
   <script>
@@ -59,10 +88,18 @@
         return;
       }
 
+      // 取得登入者的 UUID
+      const user = session.user;
+      if (!user) {
+        msg.textContent = '❌ 找不到登入資訊';
+        return;
+      }
+
+      // 查詢對應的使用者資料
       const { data: userInfo, error: userError } = await supabase
         .from('users')
         .select('role, approved')
-        .eq('email', email)
+        .eq('id', user.id)
         .single();
 
       if (!userInfo || !userInfo.approved) {
@@ -75,27 +112,35 @@
       document.getElementById('auth-section').classList.add('hidden');
       document.getElementById('query-section').classList.remove('hidden');
       document.getElementById('roleLabel').textContent = role;
-
-      if (role === 'admin') {
-        document.getElementById('biasBtn').classList.remove('hidden');
-      }
+      if (role === 'admin') document.getElementById('biasBtn').classList.remove('hidden');
     }
 
     async function register() {
       const email = document.getElementById('email').value.trim();
       const password = document.getElementById('password').value.trim();
+      const name = document.getElementById('regName').value.trim();
+      const dept = document.getElementById('regDept').value.trim();
       const msg = document.getElementById('authMessage');
       msg.textContent = '';
 
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (!name || !dept) {
+        msg.textContent = '⚠️ 請填寫姓名與部門';
+        return;
+      }
+
+      const { data: regResult, error } = await supabase.auth.signUp({ email, password });
       if (error) {
         msg.textContent = '❌ 註冊失敗：' + error.message;
         return;
       }
 
-      // 自動插入 users 表
-      await supabase.from('users').insert([{ email, approved: false }]);
-      msg.textContent = '✅ 註冊成功，請等待管理員審核開通。';
+      const user = regResult.user;
+      if (user) {
+        await supabase.from('users').insert([{ id: user.id, email, name, department: dept, approved: false }]);
+        msg.textContent = '✅ 註冊成功，請等待管理員審核。';
+      } else {
+        msg.textContent = '⚠️ 無法取得帳號資訊，請稍後再試';
+      }
     }
 
     function goTo(baseURL) {
@@ -108,7 +153,8 @@
       if (department) params.append('department', department);
       if (date) params.append('date', date);
 
-      if (params.toString().split('&').length < 2) {
+      const filled = [name, department, date].filter(x => x).length;
+      if (filled < 2) {
         alert('請至少填寫兩項查詢條件（姓名、部門、日期）');
         return;
       }
