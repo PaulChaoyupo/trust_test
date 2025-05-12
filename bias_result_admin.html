@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>落差分析總覽後台</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: 'Noto Sans TC', sans-serif; margin: 0 auto; padding: 2rem; max-width: 960px; background: #f9f9f9; color: #333; }
+    h2 { text-align: center; color: #1d3557; margin-bottom: 1rem; }
+    .meta, .select-panel { text-align: center; font-size: 0.95rem; margin-bottom: 2rem; color: #555; }
+    select, button {
+      font-size: 1rem; padding: 0.5rem 1rem; margin: 0.5rem;
+      border-radius: 8px; border: 1px solid #ccc;
+    }
+    .chart-section, .summary-section {
+      background: #fff; border-radius: 12px;
+      padding: 1.5rem; margin-bottom: 2rem;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    }
+    canvas { width: 100%; max-width: 800px; margin: auto; display: block; }
+    .bias-labels { display: flex; justify-content: space-around; margin-top: 1rem; font-size: 0.9rem; color: #777; }
+    .bias-block { margin-bottom: 2rem; padding: 1rem; background: #fefefe; border-left: 6px solid #457b9d; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .bias-block h4 { margin: 0 0 0.5rem 0; color: #1d3557; }
+    .summary-card { background: #fff; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.06); }
+    .summary-card h3 { margin-bottom: 0.6rem; color: #1d3557; }
+  </style>
+</head>
+<body>
+  <h2>📊 偏誤風險分析</h2>
+
+  <div class="select-panel" id="adminSelectPanel" style="display:none;">
+    <select id="deptSelect"><option value="">請選擇部門</option></select>
+    <select id="nameSelect"><option value="">請先選擇部門</option></select>
+    <button onclick="applySelection()">查詢分析</button>
+  </div>
+
+  <div class="meta" id="metaInfo">尚未載入資料</div>
+  <div class="chart-section">
+    <canvas id="biasChart" height="280"></canvas>
+    <div class="bias-labels">
+      <span>能力高估</span>
+      <span>責任感偏誤</span>
+      <span>表現感知偏誤</span>
+      <span>過度謙遜</span>
+    </div>
+    <div class="bias-desc" id="biasDescriptions"></div>
+  </div>
+  <div class="summary-section" id="summaryCards"></div>
+
+<script>
+  const role = localStorage.getItem("role");
+  const email = localStorage.getItem("email");
+
+  if (!role || !email || role !== "admin") {
+    alert("🚫 僅限管理員查看此頁面");
+    window.location.href = "result_selector.html";
+  }
+
+  const deptSelect = document.getElementById("deptSelect");
+  const nameSelect = document.getElementById("nameSelect");
+  const adminPanel = document.getElementById("adminSelectPanel");
+
+  // ✅ Step 1：載入下拉名單
+  fetch("https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/reviews?select=department,name", {
+    headers: {
+      apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc",
+      Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc"
+    }
+  }).then(r => r.json()).then(data => {
+    adminPanel.style.display = "block";
+
+    const depts = [...new Set(data.map(d => d.department))].sort();
+    depts.forEach(d => {
+      const opt = document.createElement("option");
+      opt.value = d;
+      opt.textContent = d;
+      deptSelect.appendChild(opt);
+    });
+
+    deptSelect.addEventListener("change", () => {
+      nameSelect.innerHTML = '<option value="">請選擇姓名</option>';
+      const selected = deptSelect.value;
+      const names = [...new Set(data.filter(d => d.department === selected).map(d => d.name))].sort();
+      names.forEach(n => {
+        const opt = document.createElement("option");
+        opt.value = n;
+        opt.textContent = n;
+        nameSelect.appendChild(opt);
+      });
+    });
+  });
+
+  function applySelection() {
+    const dept = deptSelect.value;
+    const name = nameSelect.value;
+    if (!dept || !name) {
+      alert("請選擇部門與姓名");
+      return;
+    }
+    const url = new URL(window.location.href);
+    url.searchParams.set("department", dept);
+    url.searchParams.set("name", name);
+    window.location.href = url.toString(); // ⬅️ 重載查詢
+  }
+</script>
+<script>
+// ✅ Step 2：取得 URL 查詢參數
+const params = new URLSearchParams(window.location.search);
+const name = params.get("name");
+const department = params.get("department");
+
+if (!name || !department) {
+  document.getElementById("metaInfo").innerText = "📌 請先從上方選擇部門與姓名進行查詢";
+} else {
+  const headers = {
+    apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc",
+    Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc"
+  };
+
+  Promise.all([
+    fetch(`https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/results?name=eq.${name}&department=eq.${department}`, { headers }).then(r => r.json()),
+    fetch(`https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/reviews?name=eq.${name}&department=eq.${department}`, { headers }).then(r => r.json())
+  ])
+  .then(([resData, revData]) => {
+    if (!resData.length || !revData.length) {
+      document.getElementById("metaInfo").innerText = "⚠️ 找不到自評或主管資料";
+      return;
+    }
+
+    const self = resData[0], mgr = revData[0];
+    const selfScores = self.scores;
+    const mgrScores = mgr.scores;
+
+    document.getElementById("metaInfo").innerText = `部門：${self.department}｜員工：${self.name}｜主管：${mgr.reviewer_name || "未填寫"}`;
+
+    const avg = arr => arr.reduce((a,b)=>a+b,0)/arr.length;
+    const biasData = [
+      { key: "overconfidence", label: "能力高估", self: avg(selfScores.slice(20,23)), mgr: avg(mgrScores.slice(0,3)) },
+      { key: "responsibility", label: "責任感偏誤", self: avg([...selfScores.slice(5,8), ...selfScores.slice(15,18)]), mgr: avg(mgrScores.slice(3,6)) },
+      { key: "visibility", label: "表現感知偏誤", self: avg([...selfScores.slice(0,3), ...selfScores.slice(10,13)]), mgr: avg(mgrScores.slice(6,9)) },
+      { key: "humility", label: "過度謙遜", self: avg(selfScores.slice(20,23)), mgr: avg(mgrScores.slice(9,12)) }
+    ];
+
+    const ctx = document.getElementById("biasChart").getContext("2d");
+    new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: biasData.map(d => d.label),
+        datasets: [
+          { label: '自評分數', data: biasData.map(d => d.self), backgroundColor: '#a8dadc' },
+          { label: '主管評分', data: biasData.map(d => d.mgr), backgroundColor: '#457b9d' }
+        ]
+      },
+      options: {
+        scales: {
+          y: {
+            min: 1, max: 6,
+            title: { display: true, text: "平均分數（1~6）" }
+          }
+        }
+      }
+    });
+
+    const weightMap = { overconfidence: 2, visibility: 1.5, responsibility: 1.2, humility: 1 };
+    const diffs = biasData.map(d => ({
+      key: d.key,
+      diff: d.self - d.mgr,
+      self: d.self,
+      mgr: d.mgr,
+      score: Math.abs(d.self - d.mgr) * 0.6 + (d.self > d.mgr ? 0.4 : 0.2) * weightMap[d.key]
+    }));
+
+    const biasOrder = ["overconfidence", "visibility", "responsibility", "humility"];
+    diffs.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      if (b.self !== a.self) return b.self - a.self;
+      return biasOrder.indexOf(a.key) - biasOrder.indexOf(b.key);
+    });
+
+    biasData.forEach(d => {
+      const diff = d.self - d.mgr;
+      const level = Math.abs(diff) >= 1 ? "high" : Math.abs(diff) >= 0.5 ? "mid" : "low";
+      fetch(`bias_${d.key}.html`)
+        .then(r => r.text())
+        .then(html => {
+          const block = new DOMParser().parseFromString(html, "text/html").querySelector(`#level-${level}`);
+          if (block) {
+            const wrap = document.createElement("div");
+            wrap.className = "bias-block";
+            wrap.innerHTML = `<h4>${d.label}｜風險：${level === "high" ? "🔴 高" : level === "mid" ? "🟡 中" : "🟢 低"}</h4>${block.innerHTML}`;
+            document.getElementById("biasDescriptions").appendChild(wrap);
+          }
+        });
+    });
+
+    const mainKey = diffs[0].key;
+    const secondKey = diffs[1].key;
+    const mid = Math.abs(diffs[1].diff) >= 0.5 ? "-mid" : "";
+    const targetId = `summary-${mainKey}-${secondKey}${mid}`;
+    const fallbackId = `summary-${mainKey}`;
+
+    fetch("bias_summary_combinations.html")
+      .then(r => r.text())
+      .then(html => {
+        const container = document.createElement("div");
+        container.innerHTML = html;
+        const block = container.querySelector(`#${targetId}`) || container.querySelector(`#${fallbackId}`);
+        if (block) {
+          const card = document.createElement("div");
+          card.className = "summary-card";
+          card.innerHTML = block.innerHTML;
+          document.getElementById("summaryCards").appendChild(card);
+        }
+      });
+  });
+}
+</script>
+</body>
+</html>
