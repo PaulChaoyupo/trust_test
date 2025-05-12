@@ -154,7 +154,9 @@
       const testType = document.getElementById("testType").value;
       const department = document.getElementById("department")?.value || "";
       const position = document.getElementById("position")?.value || "";
-      const tenure = document.getElementById("tenure")?.value || "";
+      const rawTenure = document.getElementById("tenure")?.value;
+      const tenure = rawTenure ? parseFloat(rawTenure) : null;
+
 
 const scores = [];
       for (let i = 0; i < window.questions.length; i++) {
