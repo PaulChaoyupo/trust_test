@@ -1,75 +1,101 @@
-
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>選擇分析對象｜偏誤風險分析</title>
+  <title>登入後台｜才能素描</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { font-family: 'Noto Sans TC', sans-serif; padding: 2rem; background: #f0f2f5; max-width: 640px; margin: auto; }
-    h2 { text-align: center; color: #1d3557; margin-bottom: 2rem; }
-    label { font-weight: 500; margin-top: 1rem; display: block; }
-    select, button {
-      width: 100%; padding: 0.8rem; font-size: 1rem;
-      margin-top: 0.5rem; border-radius: 8px; border: 1px solid #ccc;
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+      background: #f0f2f5;
+      padding: 2rem;
+      max-width: 480px;
+      margin: auto;
+    }
+    h2 {
+      text-align: center;
+      color: #1d3557;
+      margin-bottom: 2rem;
+    }
+    input {
+      width: 100%;
+      padding: 0.8rem;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 8px;
+      border: 1px solid #ccc;
     }
     button {
-      background-color: #457b9d; color: white; border: none; cursor: pointer;
-      margin-top: 2rem;
+      width: 100%;
+      padding: 0.8rem;
+      font-size: 1rem;
+      background-color: #457b9d;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
     }
-    button:hover { background-color: #1d3557; }
+    button:hover {
+      background-color: #1d3557;
+    }
+    .error {
+      color: red;
+      margin-top: 1rem;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
-  <h2>查看員工偏誤分析結果</h2>
-  <label for="department">選擇部門：</label>
-  <select id="department"><option value="">請選擇</option></select>
+  <h2>登入才能素描後台</h2>
 
-  <label for="name">選擇員工姓名：</label>
-  <select id="name"><option value="">請先選擇部門</option></select>
+  <input type="email" id="email" placeholder="請輸入 Email" />
+  <input type="password" id="password" placeholder="請輸入密碼" />
+  <button onclick="login()">登入</button>
 
-  <button onclick="goToResult()">查看分析結果</button>
+  <div class="error" id="errorMessage"></div>
 
-<script>
-  const headers = {
-    "apikey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc",
-    "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc"
-  };
+  <script>
+    const supabase = supabase.createClient(
+      'https://wnbvamrjoydduriwaetd.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
+    );
 
-  const baseUrl = "https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/results";
+    async function login() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const errorBox = document.getElementById('errorMessage');
+      errorBox.textContent = '';
 
-  const deptSelect = document.getElementById("department");
-  const nameSelect = document.getElementById("name");
+      const { data: sessionData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-  fetch(baseUrl + "?select=department,name", { headers })
-    .then(res => res.json())
-    .then(data => {
-      const uniqueDepts = [...new Set(data.map(d => d.department))].sort();
-      uniqueDepts.forEach(d => {
-        const opt = document.createElement("option");
-        opt.value = d;
-        opt.textContent = d;
-        deptSelect.appendChild(opt);
-      });
+      if (signInError) {
+        errorBox.textContent = '❌ 登入失敗，請確認帳號密碼。';
+        return;
+      }
 
-      deptSelect.addEventListener("change", () => {
-        nameSelect.innerHTML = '<option value="">請選擇</option>';
-        const selectedDept = deptSelect.value;
-        const names = [...new Set(data.filter(d => d.department === selectedDept).map(d => d.name))].sort();
-        names.forEach(n => {
-          const opt = document.createElement("option");
-          opt.value = n;
-          opt.textContent = n;
-          nameSelect.appendChild(opt);
-        });
-      });
-    });
+      // 讀取使用者角色
+      const { data: userData, error: userError } = await supabase
+        .from('users')
+        .select('role')
+        .eq('email', email)
+        .single();
 
-  function goToResult() {
-    const name = nameSelect.value;
-    const department = deptSelect.value;
-    if (!name || !department) return alert("請選擇完整資訊");
-    window.location.href = `bias_result.html?name=${encodeURIComponent(name)}&department=${encodeURIComponent(department)}`;
-  }
-</script>
+      if (userError || !userData) {
+        errorBox.textContent = '⚠️ 無法找到使用者角色，請聯絡系統管理員。';
+        return;
+      }
+
+      const role = userData.role;
+      localStorage.setItem('role', role); // 儲存以供其他頁面使用
+
+      if (role === 'admin') {
+        window.location.href = 'admin_dashboard.html'; // 可改成 bias_result.html 選單版
+      } else if (role === 'manager') {
+        window.location.href = 'manager_selector.html';
+      } else {
+        errorBox.textContent = '🚫 無權限訪問此系統。';
+      }
+    }
+  </script>
 </body>
 </html>
