@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>才能素描登入與查詢頁</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: auto; padding: 2rem; background: #f8f9fa; }
+    h2 { text-align: center; color: #1d3557; }
+    input, button, select {
+      width: 100%; padding: 10px; margin: 10px 0;
+      font-size: 1rem; border-radius: 6px; border: 1px solid #ccc;
+    }
+    button { background-color: #457b9d; color: white; border: none; }
+    button:hover { background-color: #1d3557; }
+    .hidden { display: none; }
+    .section { background: white; padding: 1rem; margin-top: 1.5rem; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
+  </style>
+</head>
+<body>
+  <h2>才能素描查詢系統</h2>
+
+  <!-- 登入區塊 -->
+  <div class="section" id="auth-section">
+    <input type="email" id="email" placeholder="Email" />
+    <input type="password" id="password" placeholder="密碼" />
+    <button onclick="login()">登入</button>
+    <button onclick="register()">申請帳號</button>
+    <p id="authMessage" style="color:red; text-align:center;"></p>
+  </div>
+
+  <!-- 查詢與功能按鈕區塊 -->
+  <div class="section hidden" id="query-section">
+    <p>歡迎，<span id="roleLabel"></span> 使用者</p>
+    <input type="text" id="nameInput" placeholder="姓名" />
+    <input type="text" id="departmentInput" placeholder="部門" />
+    <input type="date" id="dateInput" />
+
+    <button onclick="goTo('result.html')">查看受測結果頁</button>
+    <button onclick="goTo('dashboard.html')">查看職能分析頁</button>
+    <button id="biasBtn" class="hidden" onclick="goTo('bias_result.html')">查看落差分析頁</button>
+  </div>
+
+  <script>
+    const supabase = supabase.createClient(
+      'https://wnbvamrjoydduriwaetd.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
+    );
+
+    async function login() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const msg = document.getElementById('authMessage');
+      msg.textContent = '';
+
+      const { data: session, error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) {
+        msg.textContent = '❌ 登入失敗：' + error.message;
+        return;
+      }
+
+      const { data: userInfo, error: userError } = await supabase
+        .from('users')
+        .select('role, approved')
+        .eq('email', email)
+        .single();
+
+      if (!userInfo || !userInfo.approved) {
+        msg.textContent = '⏳ 此帳號尚未通過審核，請等待管理員核准';
+        return;
+      }
+
+      const role = userInfo.role || 'viewer';
+      localStorage.setItem('role', role);
+      document.getElementById('auth-section').classList.add('hidden');
+      document.getElementById('query-section').classList.remove('hidden');
+      document.getElementById('roleLabel').textContent = role;
+
+      if (role === 'admin') {
+        document.getElementById('biasBtn').classList.remove('hidden');
+      }
+    }
+
+    async function register() {
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value.trim();
+      const msg = document.getElementById('authMessage');
+      msg.textContent = '';
+
+      const { data, error } = await supabase.auth.signUp({ email, password });
+      if (error) {
+        msg.textContent = '❌ 註冊失敗：' + error.message;
+        return;
+      }
+
+      // 自動插入 users 表
+      await supabase.from('users').insert([{ email, approved: false }]);
+      msg.textContent = '✅ 註冊成功，請等待管理員審核開通。';
+    }
+
+    function goTo(baseURL) {
+      const name = document.getElementById('nameInput').value.trim();
+      const department = document.getElementById('departmentInput').value.trim();
+      const date = document.getElementById('dateInput').value.trim();
+
+      const params = new URLSearchParams();
+      if (name) params.append('name', name);
+      if (department) params.append('department', department);
+      if (date) params.append('date', date);
+
+      if (params.toString().split('&').length < 2) {
+        alert('請至少填寫兩項查詢條件（姓名、部門、日期）');
+        return;
+      }
+
+      window.location.href = `${baseURL}?${params.toString()}`;
+    }
+  </script>
+</body>
+</html>
