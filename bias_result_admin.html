@@ -215,5 +215,68 @@ if (!name || !department) {
   });
 }
 </script>
+<!-- ✅ PDF 匯出套件 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<!-- ✅ PDF 匯出按鈕 -->
+<button onclick="downloadPDF()" style="
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #1d3557;
+  color: white;
+  padding: 0.8rem 1.2rem;
+  font-size: 1rem;
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  cursor: pointer;
+  z-index: 999;">
+  📄 下載 PDF 報告
+</button>
+
+<script>
+function downloadPDF() {
+  const name = new URLSearchParams(window.location.search).get("name") || "未知";
+  const department = new URLSearchParams(window.location.search).get("department") || "未填";
+  const today = new Date().toISOString().slice(0,10);
+  const filename = `偏誤風險分析_${department}_${name}_${today}.pdf`;
+
+  html2pdf().from(document.body).set({
+    margin: 0.3,
+    filename: filename,
+    html2canvas: { scale: 2 },
+    jsPDF: { format: 'a4', orientation: 'portrait' }
+  }).save();
+}
+</script>
+<!-- ✅ Admin 專用：返回首頁 -->
+<div id="adminBackButton" style="
+  position: fixed;
+  bottom: 90px;
+  right: 24px;
+  z-index: 999;
+  background-color: #457b9d;
+  color: white;
+  padding: 0.8rem 1.2rem;
+  border-radius: 999px;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  display: none;">
+  🔙 返回首頁
+</div>
+
+<script>
+  const role = localStorage.getItem("role");
+  const email = localStorage.getItem("email");
+
+  if (role === 'admin' && email) {
+    document.getElementById('adminBackButton').style.display = 'block';
+    document.getElementById('adminBackButton').addEventListener('click', () => {
+      window.location.href = 'result_selector.html';
+    });
+  }
+</script>
 </body>
 </html>
