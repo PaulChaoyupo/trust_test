@@ -1,188 +1,92 @@
-const SUPABASE_URL = 'https://wnbvamrjoydduriwaetd.supabase.co';
-const SUPABASE_API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc';
-let radarChart;
+// dashboard_logic.js
 
-document.addEventListener("DOMContentLoaded", () => {
-  fetchData();
-});
-
-function fetchData() {
-  fetch(`${SUPABASE_URL}/rest/v1/results?select=*`, {
-    headers: { 'apikey': SUPABASE_API_KEY, 'Authorization': `Bearer ${SUPABASE_API_KEY}` }
-  })
-    .then(res => res.json())
-    .then(data => initSelectors(data))
-    .catch(err => console.error("❌ 資料讀取失敗", err));
-}
-
-function initSelectors(data) {
-  const dateInput = document.getElementById("dateSelector");
-  const userSelector = document.getElementById("userSelector");
-  userSelector.filteredUsers = [];
-
-  dateInput.addEventListener('change', () => updateUserSelector(data, dateInput.value));
-  userSelector.addEventListener('change', () => {
-    const selectedIndex = userSelector.value;
-    const selectedUser = userSelector.filteredUsers[selectedIndex];
-    if (selectedUser) showUserData(selectedUser);
-  });
-}
-
-function updateUserSelector(data, selectedDate) {
-  const userSelector = document.getElementById("userSelector");
-  userSelector.innerHTML = "<option value=''>請選擇</option>";
-  userSelector.disabled = false;
-
-  const filtered = data.filter(d => d.date.substring(0, 10) === selectedDate);
-  userSelector.filteredUsers = filtered;
-
-  filtered.forEach((d, i) => {
-    const opt = document.createElement("option");
-    opt.value = i;
-    opt.text = d.name;
-    userSelector.appendChild(opt);
-  });
-}
-
-function showUserData(user) {
-  if (!user) return;
-  try {
-    user.scores = typeof user.scores === 'string' ? JSON.parse(user.scores) : user.scores;
-  } catch {
-    console.error("❌ scores JSON 解析失敗", user.scores);
-    return;
-  }
-
-  const dimMap = {
-    "團隊展現": { key: "team", idxs: [0,1,2,3,4] },
-    "執行能力": { key: "execution", idxs: [5,6,7,8,9] },
-    "創意展現": { key: "creativity", idxs: [10,11,12,13,14] },
-    "工作風格": { key: "workstyle", idxs: [15,16,17,18,19] },
-    "自我認知": { key: "awareness", idxs: [20,21,22,23,24] },
-    "一致性": { key: "consistency", idxs: [25,26,27,28,29,30] }
-  };
-
-  const MAX_SCORE = 6;
-  const weightedScores = {};
-  const percentMap = {};
-
-  Object.entries(dimMap).forEach(([dim, { idxs }]) => {
-    const scores = idxs.map(i => user.scores[i]);
-    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-    const std = Math.sqrt(scores.map(x => Math.pow(x - avg, 2)).reduce((a, b) => a + b) / scores.length);
-    weightedScores[dim] = avg;
-    percentMap[dimMap[dim].key] = Math.round((avg / MAX_SCORE) * 100);
-  });
-const sortedDims = Object.entries(weightedScores).filter(([k]) => k !== '一致性').sort((a,b)=>b[1]-a[1]);
-const [highDim, midDim, lowDim] = [sortedDims[0][0], sortedDims[1][0], sortedDims[sortedDims.length-1][0]].map(dim => dimMap[dim].key);
-const selfAvg = dimMap['自我認知'].idxs.slice(0,3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/3;
-const otherAvg = dimMap['自我認知'].idxs.slice(3).map(i => user.scores[i]).reduce((a,b)=>a+b,0)/2;
-const awarenessGap = Math.abs(selfAvg - otherAvg);
-const consistencyAvg = dimMap['一致性'].idxs.map(i => user.scores[i]).reduce((a,b)=>a+b,0)/6;
-const consistencyStd = Math.sqrt(dimMap['一致性'].idxs.map(i => Math.pow(user.scores[i] - consistencyAvg, 2)).reduce((a,b)=>a+b,0)/6);
-
-let suspicious = false;
-let suspiciousLevel = '';
-
-if (consistencyAvg > 4.5 || consistencyStd < 0.5) {
-    suspicious = true;
-    suspiciousLevel = '高風險';
-} else if (consistencyAvg > 4.0) {
-    suspicious = true;
-    suspiciousLevel = '中等風險';
-}
-
-
-// 新增對應表
-const awarenessLevelMap = {
-    '高自覺': 'high',
-    '中等自覺': 'medium',
-    '低自覺': 'low'
+// 模組與題目索引對照
+const moduleMap = {
+  workstyle: [16, 17, 18],
+  team: [1, 2, 3],
+  execution: [6, 7, 8],
+  creativity: [11, 12, 13],
+  awareness: [21, 22, 23]
 };
 
-let awarenessLevel = '';
-if (awarenessGap < 0.3 && selfAvg >= 3.5) {
-    awarenessLevel = '高自覺';
-} else if (awarenessGap < 0.8 && selfAvg >= 2.5) {
-    awarenessLevel = '中等自覺';
-} else {
-    awarenessLevel = '低自覺';
-}
+const moduleOrder = ["workstyle", "team", "execution", "creativity", "awareness"];
 
-// 進度條資料
-window.chartPercentages = percentMap;
+// 平均值計算
+const avg = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
 
-  // ➕ 繪製雷達圖
-const radarLabels = ['人際互動', '積極程度', '創意思考', '工作展現', '自我察覺'];
-const radarKeys = ['team', 'execution', 'creativity', 'workstyle', 'awareness'];
-const radarData = radarKeys.map(key => percentMap[key]);
-
-drawRadarChart(radarLabels, radarData);
-
-// 載入高分/次高分/低分構面
-loadDimensionSection(highDim, 'high', 'highContent');
-loadDimensionSection(midDim, 'second', 'midContent');
-loadDimensionSection(lowDim, 'low', 'lowContent');
-
-// 修正版 loadHTML
-loadHTML('awarenessBlock', `self_awareness_${awarenessLevelMap[awarenessLevel]}_${highDim}_${midDim}.html`);
-
-
-  if (suspicious) {
-    document.getElementById('awarenessBlock').innerHTML += `<div style="color:red; font-weight:bold;">⚠️ 注意：填答一致性${suspiciousLevel}，請小心解讀結果</div>`;
-}
-}
-
-function drawRadarChart(labels, percentData) {
-  if (radarChart) radarChart.destroy();
-  radarChart = new Chart(document.getElementById("radarChart"), {
-    type: 'radar',
-    data: {
-      labels,
-      datasets: [{
-        label: '構面分數 (%)',
-        data: percentData,
-        backgroundColor: 'rgba(33,111,163,0.2)',
-        borderColor: '#2170a3',
-        pointBackgroundColor: '#2170a3'
-      }]
-    },
-    options: {
-      scales: {
-        r: {
-          min: 0,
-          max: 100,
-          ticks: { stepSize: 20, callback: v => `${v}%`, backdropColor: 'transparent', font: { size: 14 } },
-          pointLabels: { font: { size: 16 } }
-        }
-      },
-      plugins: { legend: { display: false } },
-      responsive: true,
-      maintainAspectRatio: false
-    }
-  });
-}
-
-async function loadDimensionSection(dim, section, blockId) {
-  const path = `${dim}.html`;
-  const percent = window.chartPercentages[dim] || 0;
+// 載入模組敘述檔案區段
+async function loadModuleDescription(module, level, targetId) {
   try {
-    const res = await fetch(path);
+    const res = await fetch(`${module}.html`);
     const html = await res.text();
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = html;
-    const sectionContent = tempDiv.querySelector(`#${dim}-${section}`);
-    document.getElementById(blockId).innerHTML = sectionContent 
-      ? `<h3>${dim}-${section} <span>${percent}%</span></h3><div>${sectionContent.innerHTML}</div>`
-      : `❌ ${dim}-${section} 未找到`;
-  } catch {
-    document.getElementById(blockId).innerHTML = `❌ 無法載入 ${path}`;
+    const block = new DOMParser().parseFromString(html, "text/html").querySelector(`#${module}-${level}`);
+    if (block) {
+      document.getElementById(targetId).innerHTML = block.innerHTML;
+    } else {
+      document.getElementById(targetId).innerHTML = "❗ 尚未提供敘述內容";
+    }
+  } catch (err) {
+    document.getElementById(targetId).innerHTML = "❗ 無法載入敘述檔案";
   }
 }
 
-function loadHTML(id, path) {
-  fetch(path)
-    .then(r => r.ok ? r.text() : Promise.reject())
-    .then(t => document.getElementById(id).innerHTML = `<div>${t}</div>`)
-    .catch(() => document.getElementById(id).innerHTML = `❌ 無法載入 ${path}`);
+// 載入自覺敘述組合檔
+async function loadAwarenessCombo(level, high, low) {
+  const filename = `self_awareness_${level}_${high}_${low}.html`;
+  try {
+    const res = await fetch(filename);
+    const html = await res.text();
+    document.getElementById("awarenessContent").innerHTML = html;
+  } catch (err) {
+    document.getElementById("awarenessContent").innerHTML = "❗ 無法載入自覺組合敘述檔案";
+  }
 }
+
+// 使用者選擇後觸發主邏輯
+async function loadUserData(selectedName) {
+  const headers = {
+    apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc",
+    Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc"
+  };
+
+  const res = await fetch(`https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/results?name=eq.${selectedName}`, { headers });
+  const data = await res.json();
+  if (!data.length) return;
+  const scores = data[0].scores;
+
+  // 建立模組分數清單
+  const result = Object.entries(moduleMap).map(([mod, idxs]) => {
+    return { key: mod, value: avg(idxs.map(i => scores[i])) };
+  });
+
+  // 排序，並穩定同分順序
+  result.sort((a, b) => b.value - a.value || moduleOrder.indexOf(a.key) - moduleOrder.indexOf(b.key));
+
+  const high = result[0].key;
+  const second = result[1].key;
+  const low = result[result.length - 1].key;
+
+  // 自覺分數平均
+  const awarenessAvg = avg(moduleMap.awareness.map(i => scores[i]));
+  const level = awarenessAvg >= 4.5 ? "high" : awarenessAvg >= 3.5 ? "mid" : "low";
+
+  // 顯示圖表（雷達圖僅示意）
+  const ctx = document.getElementById("radarChart").getContext("2d");
+  if (window.radarChartInstance) window.radarChartInstance.destroy();
+  window.radarChartInstance = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: moduleOrder,
+      datasets: [{ label: selectedName, data: result.map(r => r.value), backgroundColor: "rgba(69,123,157,0.2)", borderColor: "#457b9d" }]
+    },
+    options: { scales: { r: { min: 1, max: 6 } } }
+  });
+
+  // 載入三段說明
+  await loadModuleDescription(high, "high", "highContent");
+  await loadModuleDescription(second, "second", "midContent");
+  await loadModuleDescription(low, "low", "lowContent");
+
+  // 自覺組合敘述
+  await loadAwarenessCombo(level, high, low);
+} 
