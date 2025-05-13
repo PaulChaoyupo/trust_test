@@ -2,102 +2,161 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8">
-  <title>管理員帳號審核</title>
+  <title>帳號審核後台</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
-    body { font-family: sans-serif; max-width: 600px; margin: auto; padding: 2rem; background: #f9f9f9; }
-    h2 { text-align: center; color: #1d3557; }
-    .hidden { display: none; }
-    .section { background: white; padding: 1rem; margin-top: 1.5rem; border-radius: 8px; box-shadow: 0 0 5px rgba(0,0,0,0.1); }
-    input, button {
-      padding: 10px; width: 100%; margin: 10px 0;
-      border: 1px solid #ccc; border-radius: 6px; font-size: 1rem;
+    body {
+      font-family: sans-serif;
+      max-width: 960px;
+      margin: auto;
+      padding: 2rem;
+      background-color: #f9f9f9;
     }
-    button { background-color: #457b9d; color: white; border: none; }
-    button:hover { background-color: #1d3557; }
-    .item { padding: 1rem; border-bottom: 1px solid #ddd; }
-    .item span { display: inline-block; min-width: 200px; }
+    h2 {
+      text-align: center;
+      color: #1d3557;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.75rem;
+      text-align: center;
+    }
+    th {
+      background-color: #e8f0fe;
+    }
+    select, button, input {
+      padding: 0.5rem;
+      border-radius: 6px;
+      margin: 0.2rem;
+    }
+    .approved {
+      background-color: #d4edda;
+    }
+    .unapproved {
+      background-color: #fff3cd;
+    }
+    .admin-action {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+      align-items: center;
+    }
+    .inline-form {
+      margin-top: 2rem;
+      padding: 1rem;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 6px rgba(0,0,0,0.1);
+    }
   </style>
 </head>
 <body>
-  <h2>🔐 管理員帳號審核</h2>
+  <h2>👤 帳號審核後台</h2>
 
-  <!-- 密碼驗證區 -->
-  <div class="section" id="authSection">
-    <input type="password" id="adminPass" placeholder="請輸入管理密碼" />
-    <button onclick="verify()">進入審核後台</button>
-    <p id="msg" style="color:red;"></p>
+  <div id="accountTable"></div>
+
+  <div class="inline-form">
+    <h3>➕ 手動新增帳號</h3>
+    <input type="email" id="newEmail" placeholder="Email" />
+    <input type="text" id="newName" placeholder="姓名" />
+    <input type="text" id="newDept" placeholder="部門" />
+    <select id="newRole">
+      <option value="">選擇角色</option>
+      <option value="admin">Admin</option>
+      <option value="manager">Manager</option>
+    </select>
+    <button onclick="addUser()">送出新增</button>
+    <p id="addStatus" style="color: green;"></p>
   </div>
 
-  <!-- 帳號審核區 -->
-  <div class="section hidden" id="approvalSection">
-    <h3>待審核帳號清單</h3>
-    <div id="pendingList">載入中...</div>
-  </div>
+<script>
+const supabase = supabase.createClient(
+  'https://wnbvamrjoydduriwaetd.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
+);
 
-  <script>
-    const ADMIN_PASSWORD = 'Y7i9t159W7qi@@'; // 🔑 改成你自己的密碼
-    const supabase = supabase.createClient(
-      'https://wnbvamrjoydduriwaetd.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
-    );
+async function loadAccounts() {
+  const { data, error } = await supabase.from('users').select('*').order('created_at');
+  if (error) {
+    document.getElementById('accountTable').innerText = '❌ 載入失敗';
+    return;
+  }
 
-    function verify() {
-      const pass = document.getElementById('adminPass').value;
-      const msg = document.getElementById('msg');
-      if (pass !== ADMIN_PASSWORD) {
-        msg.textContent = '❌ 密碼錯誤';
-        return;
-      }
-      document.getElementById('authSection').classList.add('hidden');
-      document.getElementById('approvalSection').classList.remove('hidden');
-      loadPendingUsers();
-    }
+  let html = '<table><tr><th>Email</th><th>姓名</th><th>部門</th><th>角色</th><th>狀態</th><th>操作</th></tr>';
+  data.forEach(user => {
+    html += `<tr class="${user.approved ? 'approved' : 'unapproved'}">
+      <td>${user.email}</td>
+      <td>${user.name || '-'}</td>
+      <td>${user.department || '-'}</td>
+      <td>${user.role || '-'}</td>
+      <td>${user.approved ? '✅ 已核准' : '⏳ 待審核'}</td>
+      <td class="admin-action">
+        <select id="role-${user.id}">
+          <option value="">選擇角色</option>
+          <option value="admin">Admin</option>
+          <option value="manager">Manager</option>
+        </select>
+        <button onclick="approveUser('${user.id}')">核准</button>
+        <button onclick="deleteUser('${user.id}')">刪除</button>
+      </td>
+    </tr>`;
+  });
+  html += '</table>';
+  document.getElementById('accountTable').innerHTML = html;
+}
 
-    async function loadPendingUsers() {
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, email, role, approved')
-        .eq('approved', false);
+async function approveUser(id) {
+  const role = document.getElementById(`role-${id}`).value;
+  if (!role) {
+    alert('請先選擇角色'); return;
+  }
+  const { error } = await supabase.from('users').update({ role, approved: true }).eq('id', id);
+  if (!error) {
+    alert('✅ 已核准帳號');
+    loadAccounts();
+  } else {
+    alert('❌ 核准失敗');
+  }
+}
 
-      const list = document.getElementById('pendingList');
-      list.innerHTML = '';
+async function deleteUser(id) {
+  if (!confirm('確定要刪除此帳號？')) return;
+  const { error } = await supabase.from('users').delete().eq('id', id);
+  if (!error) {
+    alert('🗑️ 已刪除');
+    loadAccounts();
+  } else {
+    alert('❌ 刪除失敗');
+  }
+}
 
-      if (!data || data.length === 0) {
-        list.innerHTML = '<p>✅ 目前沒有待審核帳號</p>';
-        return;
-      }
+async function addUser() {
+  const email = document.getElementById('newEmail').value.trim();
+  const name = document.getElementById('newName').value.trim();
+  const dept = document.getElementById('newDept').value.trim();
+  const role = document.getElementById('newRole').value;
+  const msg = document.getElementById('addStatus');
+  msg.style.color = 'red';
+  msg.textContent = '';
+  if (!email || !name || !dept || !role) {
+    msg.textContent = '⚠️ 所有欄位皆為必填'; return;
+  }
+  const { error } = await supabase.from('users').insert([{ email, name, department: dept, role, approved: true }]);
+  if (!error) {
+    msg.style.color = 'green';
+    msg.textContent = '✅ 新增成功';
+    loadAccounts();
+  } else {
+    msg.textContent = '❌ 新增失敗';
+  }
+}
 
-      data.forEach(user => {
-        const div = document.createElement('div');
-        div.className = 'item';
-        div.innerHTML = `
-          <span>${user.email}</span>
-          <select id="role-${user.id}">
-            <option value="manager">manager</option>
-            <option value="admin">admin</option>
-          </select>
-          <button onclick="approveUser('${user.id}')">核准</button>
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    async function approveUser(userId) {
-      const role = document.getElementById(`role-${userId}`).value;
-
-      const { error } = await supabase
-        .from('users')
-        .update({ approved: true, role })
-        .eq('id', userId);
-
-      if (!error) {
-        alert('✅ 已核准');
-        loadPendingUsers();
-      } else {
-        alert('❌ 發生錯誤');
-      }
-    }
-  </script>
+loadAccounts();
+</script>
 </body>
 </html>
