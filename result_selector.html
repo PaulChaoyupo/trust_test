@@ -67,13 +67,26 @@
 
   <!-- ✅ Admin 成功登入後的選擇按鈕 -->
   <div class="section hidden" id="adminSection">
-    <p>👋 管理員，請選擇要查看的資料分析：</p>
-    <button onclick="window.location.href='dashboard.html'">📊 查看能力分析</button>
-    <button onclick="window.location.href='bias_result_admin.html'">📉 查看落差分析</button>
-    <button onclick="logout()">🚪 登出</button>
+    <p>請選擇查看的資料分析：</p>
+    <button onclick="window.location.href='dashboard.html'">查看職務能力分析</button>
+    <button onclick="window.location.href='bias_result_admin.html'">查看認知落差分析</button>
+    <button onclick="logout()">登出帳號</button>
   </div>
 
   <script>
+    document.addEventListener("DOMContentLoaded", () => {
+  const role = localStorage.getItem("role");
+  const email = localStorage.getItem("email");
+
+  if (role && email) {
+    if (role === "admin") {
+      document.getElementById('loginSection').classList.add('hidden');
+      document.getElementById('adminSection').classList.remove('hidden');
+    } else {
+      window.location.href = 'dashboard.html';
+    }
+  }
+});
     const client = supabase.createClient(
       'https://wnbvamrjoydduriwaetd.supabase.co',
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
@@ -91,7 +104,7 @@
 
       const { data: session, error } = await client.auth.signInWithPassword({ email, password });
       if (error) {
-        msg.textContent = '❌ 登入失敗：' + error.message;
+        msg.textContent = '登入失敗：' + error.message;
         return;
       }
 
@@ -99,7 +112,7 @@
       const { data: userInfo } = await client.from('users').select('role, approved, department').eq('id', user.id).single();
 
       if (!userInfo || !userInfo.approved) {
-        msg.textContent = '⏳ 此帳號尚未通過審核';
+        msg.textContent = '此帳號尚未通過審核';
         return;
       }
 
@@ -126,20 +139,20 @@
 
       if (!email || !password || !name || !dept) {
         msg.style.color = 'red';
-        msg.textContent = '⚠️ 所有欄位皆為必填';
+        msg.textContent = '所有欄位皆為必填';
         return;
       }
 
       if (!email.includes('@') || password.length < 6) {
         msg.style.color = 'red';
-        msg.textContent = '⚠️ Email 格式錯誤或密碼過短';
+        msg.textContent = 'Email 格式錯誤或密碼過短';
         return;
       }
 
       const { data: regResult, error } = await client.auth.signUp({ email, password });
       if (error) {
         msg.style.color = 'red';
-        msg.textContent = '❌ 註冊失敗：' + error.message;
+        msg.textContent = '註冊失敗：' + error.message;
         return;
       }
 
@@ -147,8 +160,8 @@
       if (user) {
         await client.from('users').insert([{ id: user.id, email, name, department: dept, approved: false }]);
         msg.style.color = 'green';
-        msg.textContent = '✅ 註冊成功，請等待管理員審核';
-        document.getElementById('registerSection').reset?.(); // 若可用則清空
+        msg.textContent = '註冊成功，請等待管理員審核';
+        document.querySelectorAll('#registerSection input').forEach(el => el.value = '');// 若可用則清空
       }
     }
 
