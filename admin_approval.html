@@ -68,6 +68,7 @@
   <div class="inline-form hidden" id="addUserForm">
     <h3>➕ 手動新增帳號</h3>
     <input type="email" id="newEmail" placeholder="Email" />
+    <input type="password" id="newPassword" placeholder="預設密碼（至少6字）" />
     <input type="text" id="newName" placeholder="姓名" />
     <input type="text" id="newDept" placeholder="部門" />
     <select id="newRole">
@@ -80,21 +81,35 @@
     <p id="addStatus" style="color: green;"></p>
   </div>
 
+  <button onclick="window.location.href='result_selector.html'" style="
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #457b9d;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 999px;
+    font-size: 1rem;
+    border: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    cursor: pointer;">
+    🔙 返回首頁
+  </button>
+
 <script>
 const client = supabase.createClient(
   'https://wnbvamrjoydduriwaetd.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
 );
 
-// ✅ 驗證登入權限（限 admin）
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   const role = localStorage.getItem("role");
   const email = localStorage.getItem("email");
   if (role !== 'admin' || !email) {
     document.getElementById('accessDenied').classList.remove('hidden');
     return;
   }
-  loadAccounts();
+  await loadAccounts();
 });
 
 async function loadAccounts() {
@@ -141,7 +156,7 @@ async function approveUser(id) {
   const { error } = await client.from('users').update({ role, approved: true }).eq('id', id);
   if (!error) {
     alert('✅ 已核准帳號');
-    loadAccounts();
+    await loadAccounts();
   } else {
     alert('❌ 核准失敗');
   }
@@ -152,7 +167,7 @@ async function deleteUser(id) {
   const { error } = await client.from('users').delete().eq('id', id);
   if (!error) {
     alert('🗑️ 已刪除');
-    loadAccounts();
+    await loadAccounts();
   } else {
     alert('❌ 刪除失敗');
   }
@@ -160,6 +175,7 @@ async function deleteUser(id) {
 
 async function addUser() {
   const email = document.getElementById('newEmail').value.trim();
+  const password = document.getElementById('newPassword').value.trim();
   const name = document.getElementById('newName').value.trim();
   const dept = document.getElementById('newDept').value.trim();
   const role = document.getElementById('newRole').value;
@@ -167,24 +183,39 @@ async function addUser() {
   msg.style.color = 'red';
   msg.textContent = '';
 
-  if (!email || !name || !dept || !role) {
+  if (!email || !password || !name || !dept || !role) {
     msg.textContent = '⚠️ 所有欄位皆為必填'; return;
   }
-  if (!email.includes('@')) {
-    msg.textContent = '⚠️ Email 格式錯誤'; return;
+  if (!email.includes('@') || password.length < 6) {
+    msg.textContent = '⚠️ Email 格式錯誤或密碼過短'; return;
   }
 
-  const { error } = await client.from('users').insert([{ email, name, department: dept, role, approved: true }]);
-  if (!error) {
+  const { data: regResult, error: regError } = await client.auth.admin.createUser({
+    email,
+    password,
+    user_metadata: { name, department: dept, first_login: true },
+    email_confirm: false
+  });
+
+  if (regError || !regResult?.user?.id) {
+    msg.textContent = '❌ 建立帳號失敗：' + (regError?.message || '未知錯誤');
+    return;
+  }
+
+  const userId = regResult.user.id;
+  const { error: dbError } = await client.from('users').insert([{ id: userId, email, name, department: dept, role, approved: true }]);
+
+  if (!dbError) {
     msg.style.color = 'green';
-    msg.textContent = '✅ 新增成功';
+    msg.textContent = `✅ 新增成功，預設密碼為「${password}」`; // 可改為 toast
     document.getElementById('newEmail').value = '';
+    document.getElementById('newPassword').value = '';
     document.getElementById('newName').value = '';
     document.getElementById('newDept').value = '';
     document.getElementById('newRole').value = '';
-    loadAccounts();
+    await loadAccounts();
   } else {
-    msg.textContent = '❌ 新增失敗';
+    msg.textContent = '❌ 資料儲存失敗：' + dbError.message;
   }
 }
 </script>
