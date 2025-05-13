@@ -59,7 +59,7 @@
 </head>
 <body>
   <h2>👤 帳號審核後台</h2>
-  <div id="accessDenied" class="warning hidden">僅限管理員查看此頁面</div>
+  <div id="accessDenied" class="warning hidden">🚫 僅限管理員查看此頁面</div>
 
   <div id="accountTable"></div>
 
@@ -81,7 +81,7 @@
   </div>
 
 <script>
-const supabase = supabase.createClient(
+const client = supabase.createClient(
   'https://wnbvamrjoydduriwaetd.supabase.co',
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
 );
@@ -92,16 +92,15 @@ document.addEventListener('DOMContentLoaded', () => {
   const email = localStorage.getItem("email");
   if (role !== 'admin' || !email) {
     document.getElementById('accessDenied').classList.remove('hidden');
-    document.body.innerHTML += '<p style="text-align:center;"><a href="result_selector.html">返回首頁</a></p>';
     return;
   }
   loadAccounts();
 });
 
 async function loadAccounts() {
-  const { data, error } = await supabase.from('users').select('*').order('created_at');
+  const { data, error } = await client.from('users').select('*').order('created_at');
   if (error) {
-    document.getElementById('accountTable').innerText = '載入失敗';
+    document.getElementById('accountTable').innerText = '❌ 載入失敗';
     return;
   }
 
@@ -139,23 +138,23 @@ async function approveUser(id) {
   if (!role) {
     alert('請先選擇角色'); return;
   }
-  const { error } = await supabase.from('users').update({ role, approved: true }).eq('id', id);
+  const { error } = await client.from('users').update({ role, approved: true }).eq('id', id);
   if (!error) {
     alert('✅ 已核准帳號');
     loadAccounts();
   } else {
-    alert('核准失敗');
+    alert('❌ 核准失敗');
   }
 }
 
 async function deleteUser(id) {
   if (!confirm('確定要刪除此帳號？')) return;
-  const { error } = await supabase.from('users').delete().eq('id', id);
+  const { error } = await client.from('users').delete().eq('id', id);
   if (!error) {
-    alert('已刪除');
+    alert('🗑️ 已刪除');
     loadAccounts();
   } else {
-    alert('刪除失敗');
+    alert('❌ 刪除失敗');
   }
 }
 
@@ -167,16 +166,25 @@ async function addUser() {
   const msg = document.getElementById('addStatus');
   msg.style.color = 'red';
   msg.textContent = '';
+
   if (!email || !name || !dept || !role) {
-    msg.textContent = '所有欄位皆為必填'; return;
+    msg.textContent = '⚠️ 所有欄位皆為必填'; return;
   }
-  const { error } = await supabase.from('users').insert([{ email, name, department: dept, role, approved: true }]);
+  if (!email.includes('@')) {
+    msg.textContent = '⚠️ Email 格式錯誤'; return;
+  }
+
+  const { error } = await client.from('users').insert([{ email, name, department: dept, role, approved: true }]);
   if (!error) {
     msg.style.color = 'green';
-    msg.textContent = '新增成功';
+    msg.textContent = '✅ 新增成功';
+    document.getElementById('newEmail').value = '';
+    document.getElementById('newName').value = '';
+    document.getElementById('newDept').value = '';
+    document.getElementById('newRole').value = '';
     loadAccounts();
   } else {
-    msg.textContent = '新增失敗';
+    msg.textContent = '❌ 新增失敗';
   }
 }
 </script>
