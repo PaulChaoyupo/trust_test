@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
-  <title>才能素描登入頁</title>
+  <title>才能素描後台登入</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
   <style>
     body {
@@ -44,7 +44,7 @@
   </style>
 </head>
 <body>
-  <h2>才能素描登入系統</h2>
+  <h2>才能素描後台登入</h2>
 
   <!-- ✅ 登入區 -->
   <div class="section" id="loginSection">
@@ -65,110 +65,120 @@
     <p id="regMessage" style="color:green;"></p>
   </div>
 
-  <!-- ✅ Admin 成功登入後的選擇按鈕 -->
+  <!-- ✅ Admin / Supervisor 成功登入後的選擇按鈕 -->
   <div class="section hidden" id="adminSection">
-    <p>請選擇查看的資料分析：</p>
-    <button onclick="window.location.href='dashboard.html'">查看職務能力分析</button>
-    <button onclick="window.location.href='bias_result_admin.html'">查看認知落差分析</button>
-    <button onclick="logout()">登出帳號</button>
+    <p>請選擇查看資料分析：</p>
+    <button onclick="window.location.href='dashboard.html'">查看能力分析</button>
+    <button onclick="window.location.href='bias_result_admin.html'">查看落差分析</button>
+    <button id="approvalBtn" class="hidden" onclick="window.location.href='admin_approval.html'">🔑 帳號審核後台</button>
+    <button onclick="logout()">登出</button>
   </div>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
+<script>
+const client = supabase.createClient(
+  'https://wnbvamrjoydduriwaetd.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
+);
+
+// ✅ 自動判斷登入狀態 + 驗證權限
+client.auth.getSession().then(({ data: { session } }) => {
   const role = localStorage.getItem("role");
   const email = localStorage.getItem("email");
 
-  if (role && email) {
-    if (role === "admin") {
+  if (session && email && role) {
+    if (role === "admin" || role === "supervisor") {
       document.getElementById('loginSection').classList.add('hidden');
       document.getElementById('adminSection').classList.remove('hidden');
+      if (role === 'admin') {
+        document.getElementById('approvalBtn').classList.remove('hidden');
+      }
     } else {
       window.location.href = 'dashboard.html';
     }
   }
 });
-    const client = supabase.createClient(
-      'https://wnbvamrjoydduriwaetd.supabase.co',
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
-    );
 
-    function showRegister() {
-      document.getElementById('registerSection').classList.remove('hidden');
+function showRegister() {
+  document.getElementById('registerSection').classList.remove('hidden');
+}
+
+async function login() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value.trim();
+  const msg = document.getElementById('loginMessage');
+  msg.textContent = '';
+
+  const { data: session, error } = await client.auth.signInWithPassword({ email, password });
+  if (error) {
+    msg.textContent = '登入失敗：' + error.message;
+    return;
+  }
+
+  const user = session.user;
+  const { data: userInfo } = await client.from('users').select('role, approved, department').eq('id', user.id).single();
+
+  if (!userInfo || !userInfo.approved) {
+    msg.textContent = '此帳號尚未通過審核';
+    return;
+  }
+
+  // 儲存登入資訊
+  localStorage.setItem('role', userInfo.role || 'manager');
+  localStorage.setItem('email', email);
+  localStorage.setItem('department', userInfo.department || '');
+
+  if (userInfo.role === 'admin' || userInfo.role === 'supervisor') {
+    document.getElementById('loginSection').classList.add('hidden');
+    document.getElementById('adminSection').classList.remove('hidden');
+    if (userInfo.role === 'admin') {
+      document.getElementById('approvalBtn').classList.remove('hidden');
     }
+  } else {
+    window.location.href = 'dashboard.html';
+  }
+}
 
-    async function login() {
-      const email = document.getElementById('loginEmail').value.trim();
-      const password = document.getElementById('loginPassword').value.trim();
-      const msg = document.getElementById('loginMessage');
-      msg.textContent = '';
+async function register() {
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value.trim();
+  const name = document.getElementById('regName').value.trim();
+  const dept = document.getElementById('regDept').value.trim();
+  const msg = document.getElementById('regMessage');
+  msg.textContent = '';
 
-      const { data: session, error } = await client.auth.signInWithPassword({ email, password });
-      if (error) {
-        msg.textContent = '登入失敗：' + error.message;
-        return;
-      }
+  if (!email || !password || !name || !dept) {
+    msg.style.color = 'red';
+    msg.textContent = '所有欄位皆為必填';
+    return;
+  }
 
-      const user = session.user;
-      const { data: userInfo } = await client.from('users').select('role, approved, department').eq('id', user.id).single();
+  if (!email.includes('@') || password.length < 6) {
+    msg.style.color = 'red';
+    msg.textContent = 'Email 格式錯誤或密碼過短';
+    return;
+  }
 
-      if (!userInfo || !userInfo.approved) {
-        msg.textContent = '此帳號尚未通過審核';
-        return;
-      }
+  const { data: regResult, error } = await client.auth.signUp({ email, password });
+  if (error) {
+    msg.style.color = 'red';
+    msg.textContent = '註冊失敗：' + error.message;
+    return;
+  }
 
-      // 儲存登入資訊
-      localStorage.setItem('role', userInfo.role || 'manager');
-      localStorage.setItem('email', email);
-      localStorage.setItem('department', userInfo.department || '');
+  const user = regResult.user;
+  if (user) {
+    await client.from('users').insert([{ id: user.id, email, name, department: dept, approved: false }]);
+    msg.style.color = 'green';
+    msg.textContent = '註冊成功，請等待審核';
+    document.querySelectorAll('#registerSection input').forEach(el => el.value = '');
+  }
+}
 
-      if (userInfo.role === 'admin') {
-        document.getElementById('loginSection').classList.add('hidden');
-        document.getElementById('adminSection').classList.remove('hidden');
-      } else {
-        window.location.href = 'dashboard.html';
-      }
-    }
-
-    async function register() {
-      const email = document.getElementById('regEmail').value.trim();
-      const password = document.getElementById('regPassword').value.trim();
-      const name = document.getElementById('regName').value.trim();
-      const dept = document.getElementById('regDept').value.trim();
-      const msg = document.getElementById('regMessage');
-      msg.textContent = '';
-
-      if (!email || !password || !name || !dept) {
-        msg.style.color = 'red';
-        msg.textContent = '所有欄位皆為必填';
-        return;
-      }
-
-      if (!email.includes('@') || password.length < 6) {
-        msg.style.color = 'red';
-        msg.textContent = 'Email 格式錯誤或密碼過短';
-        return;
-      }
-
-      const { data: regResult, error } = await client.auth.signUp({ email, password });
-      if (error) {
-        msg.style.color = 'red';
-        msg.textContent = '註冊失敗：' + error.message;
-        return;
-      }
-
-      const user = regResult.user;
-      if (user) {
-        await client.from('users').insert([{ id: user.id, email, name, department: dept, approved: false }]);
-        msg.style.color = 'green';
-        msg.textContent = '註冊成功，請等待管理員審核';
-        document.querySelectorAll('#registerSection input').forEach(el => el.value = '');// 若可用則清空
-      }
-    }
-
-    function logout() {
-      localStorage.clear();
-      window.location.href = 'result_selector.html';
-    }
-  </script>
+function logout() {
+  localStorage.clear();
+  client.auth.signOut();
+  window.location.href = 'result_selector.html';
+}
+</script>
 </body>
 </html>
