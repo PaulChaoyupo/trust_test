@@ -82,7 +82,7 @@
   </select>
 </section>
 <div class="button-group">
-  <button id="toggleThemeBtn">切換主題 🌙</button>
+  <button id="toggleThemeBtn">切換深色模式</button>
   <button id="toggleReadingMode">切換閱讀模式</button>
 </div>
 <div class="block"><canvas id="radarChart" width="400" height="400"></canvas></div>
@@ -94,7 +94,7 @@
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   if (window.innerWidth < 400) {
-    alert('📱 提示：為了獲得更佳閱讀體驗，建議您將手機橫向瀏覽。');
+    alert('提示：為了獲得更佳閱讀體驗，建議您將手機橫向瀏覽。');
   }
   const toggleBtn = document.getElementById('toggleReadingMode');
   if (toggleBtn) {
@@ -115,28 +115,26 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 </script>
-<div id="adminBackButton" style="position: fixed; bottom: 90px; right: 24px; z-index: 999; background-color: #457b9d; color: white; padding: 0.8rem 1.2rem; border-radius: 999px; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: none;">🔙 返回首頁</div>
-<div id="managerLogoutButton" style="position: fixed; bottom: 24px; right: 24px; z-index: 998; background-color: #888; color: white; padding: 0.8rem 1.2rem; border-radius: 999px; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: none;">🚪 登出系統</div>
+<!-- 🔙 返回首頁 or 登出 -->
+<div id="navButton" style="position: fixed; bottom: 24px; right: 24px; z-index: 999; background-color: #457b9d; color: white; padding: 0.8rem 1.2rem; border-radius: 999px; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.2); display: none;"></div>
 <script>
   const role = localStorage.getItem('role');
   const email = localStorage.getItem('email');
+  const navBtn = document.getElementById('navButton');
+
   if (!email || !role) window.location.href = 'result_selector.html';
-  if (role === 'admin') {
-    document.getElementById('adminBackButton').style.display = 'block';
-    document.getElementById('adminBackButton').addEventListener('click', () => {
-      window.location.href = 'result_selector.html';
-    });
-  } else if (role === 'supervisor') {
-    document.getElementById('adminBackButton').style.display = 'block';
-    document.getElementById('adminBackButton').addEventListener('click', () => {
-      window.location.href = 'result_selector.html';
-    });
+
+  if (role === 'admin' || role === 'supervisor') {
+    navBtn.textContent = '🔙 返回首頁';
+    navBtn.style.display = 'block';
+    navBtn.onclick = () => window.location.href = 'result_selector.html';
   } else if (role === 'manager') {
-    document.getElementById('managerLogoutButton').style.display = 'block';
-    document.getElementById('managerLogoutButton').addEventListener('click', () => {
+    navBtn.textContent = '登出系統';
+    navBtn.style.display = 'block';
+    navBtn.onclick = () => {
       localStorage.clear();
       window.location.href = 'result_selector.html';
-    });
+    };
   }
 </script>
 </body>
