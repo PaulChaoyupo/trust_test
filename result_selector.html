@@ -78,16 +78,22 @@
     <button onclick="logout()">登出</button>
   </div>
 
+  <div class="section hidden" id="basicSection">
+    <p>請選擇：</p>
+    <button onclick="window.location.href='dashboard.html'">查看能力分析</button>
+    <button onclick="logout()">登出</button>
+  </div>
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       const role = localStorage.getItem("role");
       const email = localStorage.getItem("email");
       if (role && email) {
+        document.getElementById('loginSection').classList.add('hidden');
         if (role === "admin") {
-          document.getElementById('loginSection').classList.add('hidden');
           document.getElementById('adminSection').classList.remove('hidden');
         } else {
-          window.location.href = 'dashboard.html';
+          document.getElementById('basicSection').classList.remove('hidden');
         }
       }
     });
@@ -125,11 +131,11 @@
       localStorage.setItem('email', email);
       localStorage.setItem('department', userInfo.department || '');
 
+      document.getElementById('loginSection').classList.add('hidden');
       if (userInfo.role === 'admin') {
-        document.getElementById('loginSection').classList.add('hidden');
         document.getElementById('adminSection').classList.remove('hidden');
       } else {
-        window.location.href = 'dashboard.html';
+        document.getElementById('basicSection').classList.remove('hidden');
       }
     }
 
