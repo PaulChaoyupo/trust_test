@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -92,95 +93,18 @@
 <div class="block" id="awarenessBlock"><h3>自覺層級分析</h3><div id="awarenessContent" class="card-text"></div></div>
 <script src="dashboard_logic.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', async () => {
-  const role = localStorage.getItem("role");
-  const email = localStorage.getItem("email");
-  const department = localStorage.getItem("department");
-  const dateInput = document.getElementById("dateSelector");
-  const nameSelect = document.getElementById("userSelector");
-
-  dateInput.addEventListener("change", async () => {
-    const selectedDate = dateInput.value;
-    nameSelect.innerHTML = '<option>載入中...</option>';
-
-    const { data, error } = await fetch(`https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/results?select=name,department,date&date=eq.${selectedDate}`, {
-      headers: {
-        apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc',
-        Authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc'
-      }
-    }).then(r => r.json());
-
-    if (!data || !data.length) {
-      nameSelect.innerHTML = '<option>查無資料</option>';
-      return;
-    }
-
-    const filtered = role === "admin"
-      ? data
-      : data.filter(d => d.department === department);
-
-    const names = [...new Set(filtered.map(d => d.name))].sort();
-    nameSelect.innerHTML = '<option value="">請選擇姓名</option>';
-    names.forEach(name => {
-      const opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = name;
-      nameSelect.appendChild(opt);
-    });
-
-    nameSelect.disabled = false;
-
-    // 當 admin 選完姓名自動載入資料（manager 手動觸發）
-    if (role === 'admin' || role === 'supervisor') {
-      nameSelect.addEventListener("change", () => {
-        const selected = nameSelect.value;
-        if (selected) loadUserData(selected);
-      });
-    }
-  });
-
-  // 若為 manager 直接載入自己
-  if (role === 'manager') {
-    const { data: selfData } = await fetch(`https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/results?select=name&email=eq.${email}`, {
-      headers: {
-        apikey: 'YOUR_API_KEY',
-        Authorization: 'Bearer YOUR_API_KEY'
-      }
-    }).then(r => r.json());
-
-    if (selfData && selfData.length) {
-      const selfName = selfData[0].name;
-      const opt = document.createElement("option");
-      opt.value = selfName;
-      opt.textContent = selfName;
-      nameSelect.appendChild(opt);
-      nameSelect.value = selfName;
-      loadUserData(selfName);
-      nameSelect.disabled = true;
-    }
-  }
-});
-</script>
-<script>
 document.addEventListener('DOMContentLoaded', () => {
   if (window.innerWidth < 400) {
     alert('提示：為了獲得更佳閱讀體驗，建議您將手機橫向瀏覽。');
   }
-  const toggleBtn = document.getElementById('toggleReadingMode');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
-      document.body.classList.toggle('reading-mode');
-    });
-  }
-  const themeBtn = document.getElementById('toggleThemeBtn');
-  if (themeBtn) {
-    themeBtn.addEventListener('click', () => {
-      document.body.classList.toggle('dark-mode');
-      localStorage.setItem('prefersDarkMode', document.body.classList.contains('dark-mode'));
-    });
-  }
-  const prefersDark = localStorage.getItem('prefersDarkMode') === 'true';
-  if (prefersDark) {
+  document.getElementById('toggleReadingMode')?.addEventListener('click', () => {
+    document.body.classList.toggle('reading-mode');
+  });
+  document.getElementById('toggleThemeBtn')?.addEventListener('click', () => {
+    document.body.classList.toggle('dark-mode');
+    localStorage.setItem('prefersDarkMode', document.body.classList.contains('dark-mode'));
+  });
+  if (localStorage.getItem('prefersDarkMode') === 'true') {
     document.body.classList.add('dark-mode');
   }
 });
