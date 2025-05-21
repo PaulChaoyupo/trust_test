@@ -1,7 +1,6 @@
 
-// dashboard_logic.js
+// 修正後的 dashboard_logic.js
 
-// 模組與題目索引對照
 const moduleMap = {
   workstyle: [16, 17, 18],
   team: [1, 2, 3],
@@ -10,93 +9,89 @@ const moduleMap = {
   awareness: [21, 22, 23]
 };
 
-const moduleOrder = ["workstyle", "team", "execution", "creativity", "awareness"];
+const radarLabels = ["工作展現", "團隊互動", "執行能力", "創意思維", "自我覺察"];
+const radarKeys = ["workstyle", "team", "execution", "creativity", "awareness"];
 
-// 平均值計算
-const avg = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+function avg(arr) {
+  return arr.reduce((a, b) => a + b, 0) / arr.length;
+}
 
-// 載入模組敘述檔案區段
-async function loadModuleDescription(module, level, targetId) {
+async function loadHTML(file, targetId) {
   try {
-    const res = await fetch(`${module}.html`);
+    const res = await fetch(file);
     const html = await res.text();
-    const block = new DOMParser().parseFromString(html, "text/html").querySelector(`#${module}-${level}`);
-    if (block) {
-      document.getElementById(targetId).innerHTML = block.innerHTML;
-    } else {
-      document.getElementById(targetId).innerHTML = "❗ 尚未提供敘述內容";
-    }
-  } catch (err) {
-    document.getElementById(targetId).innerHTML = "❗ 無法載入敘述檔案";
+    document.getElementById(targetId).innerHTML = html;
+  } catch (e) {
+    document.getElementById(targetId).innerHTML = "❗ 無法載入敘述內容";
   }
 }
 
-// 載入自覺敘述組合檔
-async function loadAwarenessCombo(level, high, low) {
-  const filename = `self_awareness_${level}_${high}_${low}.html`;
-  try {
-    const res = await fetch(filename);
-    const html = await res.text();
-    document.getElementById("awarenessContent").innerHTML = html;
-  } catch (err) {
-    document.getElementById("awarenessContent").innerHTML = "❗ 無法載入自覺組合敘述檔案";
-  }
-}
-
-// 使用者選擇後觸發主邏輯
-async function loadUserData(selectedName) {
-  const headers = {
-    apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc",
-    Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InduYnZhbXJqb3lkZHVyaXdhZXRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYxODQ4MjEsImV4cCI6MjA2MTc2MDgyMX0.AT_f5N-Kctcbkns47PyYurHxP9Z2ktRtbGgpyaMe4Oc"
+function drawRadarChart(scores) {
+  const percentMap = {
+    workstyle: (avg(scores.slice(16, 19)) - 1) / 5 * 100,
+    team: (avg(scores.slice(1, 4)) - 1) / 5 * 100,
+    execution: (avg(scores.slice(6, 9)) - 1) / 5 * 100,
+    creativity: (avg(scores.slice(11, 14)) - 1) / 5 * 100,
+    awareness: (avg(scores.slice(21, 24)) - 1) / 5 * 100
   };
 
-  const res = await fetch(`https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/results?name=eq.${selectedName}`, { headers });
-  const data = await res.json();
-  if (!data.length) return;
-  const scores = data[0].scores;
-
-  // 建立模組分數清單
-  const result = Object.entries(moduleMap).map(([mod, idxs]) => {
-    return { key: mod, value: avg(idxs.map(i => scores[i])) };
-  });
-
-  // 排序，並穩定同分順序
-  result.sort((a, b) => b.value - a.value || moduleOrder.indexOf(a.key) - moduleOrder.indexOf(b.key));
-
-  const high = result[0].key;
-  const second = result[1].key;
-  const low = result[result.length - 1].key;
-
-  // 自覺分數平均
-  const awarenessAvg = avg(moduleMap.awareness.map(i => scores[i]));
-  const level = awarenessAvg >= 4.5 ? "high" : awarenessAvg >= 3.5 ? "medium" : "low";
-
-  // 顯示圖表（雷達圖）
   const ctx = document.getElementById("radarChart").getContext("2d");
   if (window.radarChartInstance) window.radarChartInstance.destroy();
   window.radarChartInstance = new Chart(ctx, {
-    type: 'radar',
+    type: "radar",
     data: {
-      labels: moduleOrder,
+      labels: radarLabels,
       datasets: [{
-        label: selectedName,
-        data: result.map(r => r.value),
-        backgroundColor: "rgba(69,123,157,0.2)",
+        label: "構面分佈",
+        data: radarKeys.map(k => percentMap[k]),
+        backgroundColor: "rgba(69, 123, 157, 0.2)",
         borderColor: "#457b9d"
       }]
     },
     options: {
+      responsive: true,
       scales: {
-        r: { min: 1, max: 6 }
+        r: {
+          suggestedMin: 0,
+          suggestedMax: 100,
+          ticks: { stepSize: 20 }
+        }
       }
     }
   });
+}
 
-  // 載入三段說明
-  await loadModuleDescription(high, "high", "highContent");
-  await loadModuleDescription(second, "second", "midContent");
-  await loadModuleDescription(low, "low", "lowContent");
+async function loadUserData(userName) {
+  const headers = {
+    apikey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    Authorization: "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  };
 
-  // 自覺組合敘述
-  await loadAwarenessCombo(level, high, low);
+  const res = await fetch(`https://wnbvamrjoydduriwaetd.supabase.co/rest/v1/results?name=eq.${userName}`, { headers });
+  const data = await res.json();
+  if (!data.length) return;
+
+  const scores = data[0].scores;
+  drawRadarChart(scores);
+
+  const dims = {
+    workstyle: avg(scores.slice(16, 19)),
+    team: avg(scores.slice(1, 4)),
+    execution: avg(scores.slice(6, 9)),
+    creativity: avg(scores.slice(11, 14)),
+    awareness: avg(scores.slice(21, 24))
+  };
+
+  const sorted = Object.entries(dims).sort((a, b) => b[1] - a[1]);
+  const high = sorted[0][0];
+  const mid = sorted[1][0];
+  const low = sorted[4][0];
+
+  const aware = dims.awareness;
+  const level = aware >= 4.5 ? "high" : aware >= 3.5 ? "medium" : "low";
+
+  await loadHTML(`${high}.html`, "highContent");
+  await loadHTML(`${mid}.html`, "midContent");
+  await loadHTML(`${low}.html`, "lowContent");
+  await loadHTML(`self_awareness_${level}_${high}_${low}.html`, "awarenessContent");
 }
